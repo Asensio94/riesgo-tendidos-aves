@@ -93,14 +93,15 @@ def mapa(resultado, infra, ranking, grid, region_nombre, top=100, mes_inicial=No
     fg_a.add_to(m)
 
     fg_r = folium.FeatureGroup(name=f"Top {top} elementos a priorizar", show=True)
+    tope = max(float(ranking.riesgo_max.max()), 1.0)  # el radio (5-10 px) es relativo al primero del ranking
     for i, r in ranking.head(top).iterrows():
         col = {"apoyo": "#e74c3c", "aerogenerador": "#8e44ad", "linea": "#d35400"}[r.tipo]
         popup = (f"<b>#{i + 1} · {r.tipo}</b> ({r.mecanismo})<br>"
-                 f"Riesgo máx.: {r.riesgo_max:.0f} / 100 · medio: {r.riesgo_medio:.0f}<br>"
+                 f"Índice máx.: {r.riesgo_max:.0f} · medio: {r.riesgo_medio:.0f} (percentil 99 de la región = 100)<br>"
                  f"Mes pico: {r.mes_pico}<br>Especies: {escape(str(r.especies))}<br>"
                  f"{escape(str(r.categoria))} {('· ' + str(r.voltaje / 1000) + ' kV') if r.voltaje == r.voltaje and r.voltaje else ''}<br>"
                  f"<a href='{r.osm_url}' target='_blank'>Ver en OSM</a>")
-        folium.CircleMarker((r.lat, r.lon), radius=4 + 6 * r.riesgo_max / 100, color=col, weight=2,
+        folium.CircleMarker((r.lat, r.lon), radius=5 + 5 * r.riesgo_max / tope, color=col, weight=2,
                             fill=True, fill_opacity=0.5, popup=folium.Popup(popup, max_width=320),
                             tooltip=f"#{i + 1} {r.tipo} · {r.riesgo_max:.0f}").add_to(fg_r)
     fg_r.add_to(m)

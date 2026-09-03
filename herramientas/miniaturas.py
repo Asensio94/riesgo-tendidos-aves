@@ -149,8 +149,8 @@ def miniatura(region):
     rk = pd.read_csv(carpeta / "ranking_elementos.csv").head(40)
     for r in rk.itertuples():
         x, y = xy(r.lon, r.lat)
-        draw.ellipse([x - 9, y - 9, x + 9, y + 9], outline=(255, 255, 255, 240), width=4)
-        draw.ellipse([x - 9, y - 9, x + 9, y + 9], outline=(15, 15, 15, 255), width=2)
+        draw.ellipse([x - 6, y - 6, x + 6, y + 6], outline=(255, 255, 255, 240), width=3)
+        draw.ellipse([x - 6, y - 6, x + 6, y + 6], outline=(15, 15, 15, 255), width=2)
 
     fnt = fuente(max(13, W // 95))
     fnt_it = fuente(max(12, W // 105))
