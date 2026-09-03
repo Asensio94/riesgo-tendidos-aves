@@ -1,0 +1,62 @@
+name: Regenerar mapas de riesgo
+
+# Recalcula todas las regiones el día 2 de cada mes (o a mano) y publica output/ en GitHub Pages.
+# Movebank se omite en CI: las descargas de cientos de MB y los cortes de conexión del repositorio no
+# encajan en un runner; se puede ejecutar en local y subir la caché como artefacto si se quiere.
+on:
+  schedule:
+    - cron: "17 4 2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  calcular:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Restaurar caché de descargas (GBIF, OSM, terreno)
+        uses: actions/cache/restore@v4
+        with:
+          path: data/cache
+          key: cache-${{ github.run_id }}
+          restore-keys: cache-
+      - name: Calcular regiones
+        run: |
+          # si una región falla (Overpass/GBIF caídos) se publican las demás y la web del proyecto
+          for region in estrecho cantabria; do
+            python -m riesgo.cli run --region "$region" || echo "::warning::fallo en la región $region"
+          done
+          python -m riesgo.cli indice
+      - name: Guardar caché de descargas
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/cache
+          key: cache-${{ github.run_id }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: output
+
+  publicar:
+    needs: calcular
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
