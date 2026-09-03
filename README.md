@@ -132,10 +132,23 @@ Todo se cachea en `data/cache/`.
 
 ## Servicio web
 
-`output/` es publicable tal cual (HTML estático + GeoTIFF/CSV). `.github/workflows/mensual.yml` recalcula todas las
-regiones el día 2 de cada mes y despliega `output/` en GitHub Pages; la caché de GBIF/OSM/terreno se conserva entre
-ejecuciones con `actions/cache`. Movebank queda fuera de la automatización (descargas de cientos de MB con cortes
-frecuentes); se ejecuta en local cuando interese. Los resultados actuales de Movebank: en el Estrecho aporta
+`output/` es publicable tal cual (HTML estático + GeoTIFF/CSV) y se sirve en <https://asensio94.github.io/riesgo-tendidos-aves/>.
+
+Dos vías de publicación:
+
+- **Manual** (la que está activa): `bash herramientas/publicar.sh` empaqueta `output/` y lo sube a la rama `gh-pages`,
+  que es la fuente de GitHub Pages. Sirve también para subir resultados calculados en local con Movebank.
+- **Automática**: `.github/workflows/mensual.yml` recalcula todas las regiones el día 2 de cada mes y despliega `output/`
+  con `actions/deploy-pages`; la caché de GBIF/OSM/terreno se conserva entre ejecuciones con `actions/cache`. Movebank
+  queda fuera (descargas de cientos de MB con cortes frecuentes). **Pendiente de activar**: el token de `gh` de este equipo
+  no tiene el permiso `workflow`, así que el fichero está en el árbol de trabajo pero no en el repositorio. Para activarlo:
+
+  ```bash
+  gh auth refresh -h github.com -s workflow
+  git add .github && git commit -m "Workflow mensual" && git push
+  gh api -X PUT repos/Asensio94/riesgo-tendidos-aves/pages -f build_type=workflow
+  gh workflow run mensual.yml
+  ``` Los resultados actuales de Movebank: en el Estrecho aporta
 ~300 000 posiciones de milano negro y ~65 000 de cigüeña blanca; en Cantabria los datasets publicados no llegan
 (5 posiciones de abejero), así que allí el mapa se apoya solo en citas.
 
