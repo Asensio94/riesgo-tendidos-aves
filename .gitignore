@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+data/cache/
+output/
+.env
+.venv/
+.claude/
+data/ebirdst/
