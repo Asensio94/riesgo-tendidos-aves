@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bird collision and electrocution risk · the project</title>
+<meta name="description" content="A dynamic map of collision and electrocution risk for birds: method, data, challenges and how to improve accuracy. An open project to prioritise the retrofitting of power lines and wind turbines.">
+<style>
+:root{
+  --bg:#f7f4ee; --paper:#ffffff; --ink:#1d1d1b; --muted:#5f5b53; --line:#e2ddd2;
+  --acc:#b8321a; --acc2:#e08a1e; --ok:#2f6f4e; --sky:#2b5f8a; --chip:#f1ece2;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15161a; --paper:#1e2026; --ink:#ecebe6; --muted:#a8a49c; --line:#2f323a; --chip:#282b33; --acc:#e4573a; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15161a; --paper:#1e2026; --ink:#ecebe6; --muted:#a8a49c; --line:#2f323a; --chip:#282b33; --acc:#e4573a; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--sky)}
+img{max-width:100%;display:block}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+header.hero{padding:64px 0 40px;border-bottom:1px solid var(--line)}
+.kicker{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:600}
+.lang{float:right;display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.lang a{color:var(--muted);text-decoration:none;padding:3px 10px;border-radius:999px;border:1px solid var(--line)}
+.lang a:hover{background:var(--chip);color:var(--ink)}
+.lang a.on{background:var(--chip);color:var(--sky);border-color:var(--sky)}
+h1{font-size:clamp(30px,5vw,50px);line-height:1.08;margin:.3em 0 .4em;letter-spacing:-.01em}
+.lead{font-size:clamp(17px,2.2vw,21px);color:var(--muted);max-width:760px;margin:0 0 28px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:26px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-size:26px;letter-spacing:-.02em}
+.stat span{font-size:13px;color:var(--muted)}
+nav.toc{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:5;overflow-x:auto}
+nav.toc ol{display:flex;gap:4px;list-style:none;margin:0;padding:8px 0;white-space:nowrap}
+nav.toc a{display:block;padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted);text-decoration:none}
+nav.toc a:hover{background:var(--chip);color:var(--ink)}
+section.cap{padding:56px 0;border-bottom:1px solid var(--line)}
+.num{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;font-weight:700;margin-right:10px;font-size:15px}
+h2{font-size:clamp(24px,3.4vw,34px);margin:0 0 8px;letter-spacing:-.01em;display:flex;align-items:center}
+.sub{color:var(--muted);font-size:17px;margin:0 0 26px;max-width:760px}
+h3{font-size:19px;margin:28px 0 8px}
+p{max-width:760px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p{margin:0;font-size:14.5px;color:var(--muted)}
+.card .tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase}
+.card.acc{border-left:4px solid var(--acc)}
+.card.ok{border-left:4px solid var(--ok)}
+.card.warn{border-left:4px solid var(--acc2)}
+figure{margin:24px 0;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;overflow:hidden}
+figure img{border-radius:8px}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.45}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.ramp{background:linear-gradient(90deg,#fff5c8,#fecc5c,#fd8d3c,#e31a1c,#800026);width:70px!important}
+pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14px/1.55 ui-monospace,Consolas,monospace;overflow-x:auto;max-width:760px}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.steps li{position:relative;padding:14px 16px 14px 58px;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:16px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--chip);color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.steps b{display:block;margin-bottom:2px}
+.steps span{font-size:14.5px;color:var(--muted)}
+.tl{list-style:none;padding:0;margin:0;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 22px 24px}
+.tl li::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--acc2);border:2px solid var(--bg)}
+.tl b{display:block}
+.tl .fix{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
+.tl .fix::before{content:"→ ";color:var(--ok);font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--chip);font-weight:600;font-size:13px}
+.tbl{overflow-x:auto;border-radius:12px}
+.prio{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+.p1{background:var(--acc)} .p2{background:var(--acc2)} .p3{background:var(--sky)}
+.cta{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:26px 28px;margin-top:20px}
+.cta h3{margin-top:0}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:15px}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
+.svgbox{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px;overflow-x:auto}
+.svgbox svg{display:block;min-width:640px;width:100%;height:auto}
+.note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;max-width:760px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="lang"><a href="index.html">Español</a><a class="on" href="index.en.html" aria-current="page">English</a></div>
+    <div class="kicker">Open project · September 2026 · version 0.1</div>
+    <h1>Which pylon do we fix first?<br>A dynamic map of bird collision and electrocution risk</h1>
+    <p class="lead">We cross the power lines and wind turbines in OpenStreetMap with where and when the birds are
+    (eBird and GBIF records, Movebank GPS tracking) and with the terrain, to produce an index per 500 m grid cell,
+    species and month, and a ranking of the pylons, line segments and wind turbines most urgently in need of review.
+    It is recalculated every month. All the code and the output data are public.</p>
+    <div class="btns">
+      <a class="btn" href="regions.en.html">See the maps and rankings</a>
+      <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Code and method (GitHub)</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>2</b><span>pilot regions: Strait of Gibraltar and Cantabria</span></div>
+      <div class="stat"><b>49,000</b><span>pylons assessed</span></div>
+      <div class="stat"><b>4,950</b><span>line segments · 979 wind turbines</span></div>
+      <div class="stat"><b>265,000</b><span>records of 21 sensitive species (2010-2026)</span></div>
+      <div class="stat"><b>361,000</b><span>GPS positions of black kite and white stork</span></div>
+      <div class="stat"><b>12</b><span>monthly maps by species and mechanism</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap"><ol>
+  <li><a href="#problema">1 · The problem</a></li>
+  <li><a href="#idea">2 · The idea</a></li>
+  <li><a href="#datos">3 · Data</a></li>
+  <li><a href="#metodo">4 · Method</a></li>
+  <li><a href="#resultados">5 · Results</a></li>
+  <li><a href="#retos">6 · Challenges</a></li>
+  <li><a href="#mejoras">7 · Improving accuracy</a></li>
+  <li><a href="#colaborar">8 · Get involved</a></li>
+</ol></div></nav>
+
+<section class="cap" id="problema"><div class="wrap">
+  <h2><span class="num">1</span>The problem: we know they kill, we don't know which one to fix first</h2>
+  <p class="sub">Distribution power lines electrocute the birds that perch on their pylons; conductors and turbine
+  blades strike them in flight. These are the leading causes of non-natural mortality among large raptors and
+  soaring birds in Spain.</p>
+  <div class="grid g3">
+    <div class="card acc"><span class="tag">Electrocution</span><h4>Distribution pylons (1-66 kV)</h4>
+      <p>The bird perches on the cross-arm and touches two phases, or a phase and earth. It depends on the pylon design, the type of insulator and
+      whether there are taps or disconnectors. It affects vultures, eagles, storks, kites and Eurasian eagle-owl.</p></div>
+    <div class="card acc"><span class="tag">Collision with conductors</span><h4>Any line, above all the earth wire</h4>
+      <p>Birds with poor manoeuvrability or flying in flocks, at dawn and dusk: common cranes, storks, Eurasian spoonbills, grey herons,
+      great bustards. Worse on hillsides, passes and flyways.</p></div>
+    <div class="card acc"><span class="tag">Collision with wind turbines</span><h4>Blades on ridges and passes</h4>
+      <p>Soaring birds that use the very updraughts that justify the wind farm: griffon vulture, Egyptian vulture,
+      bearded vulture, golden eagle, kites.</p></div>
+  </div>
+  <h3>What is missing</h3>
+  <p>Spanish Royal Decree 1432/2008 requires dangerous lines inside protection zones to be retrofitted, and there is excellent academic
+  work on specific sites and years. But there is no up-to-date, queryable service that tells a utility, a public authority
+  or an NGO <b>which specific elements to review first, in which month and for which species</b>. Retrofitting
+  is decided from old inventories, from mortality someone happened to come across, or segment by segment
+  once a complaint arrives.</p>
+</div></section>
+
+<section class="cap" id="idea"><div class="wrap">
+  <h2><span class="num">2</span>The idea: risk = exposure × presence × sensitivity</h2>
+  <p class="sub">A pylon is dangerous if there are many dangerous pylons at that spot, if sensitive birds are there, and if it is
+  the time of year when they use it. Each of those factors can be estimated from open data and updated automatically.</p>
+  <div class="svgbox">
+  <svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Project flow diagram">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a857b"/></marker></defs>
+    <g font-family="system-ui,sans-serif" font-size="14" fill="currentColor">
+      <!-- sources -->
+      <rect x="20" y="20" width="200" height="60" rx="10" fill="#e9f0f7" stroke="#2b5f8a"/>
+      <text x="120" y="45" text-anchor="middle" font-weight="700" fill="#1d1d1b">OpenStreetMap</text>
+      <text x="120" y="66" text-anchor="middle" fill="#3b3b3b" font-size="12.5">lines · pylons · wind turbines</text>
+      <rect x="20" y="95" width="200" height="60" rx="10" fill="#eef5ea" stroke="#2f6f4e"/>
+      <text x="120" y="120" text-anchor="middle" font-weight="700" fill="#1d1d1b">GBIF + eBird</text>
+      <text x="120" y="141" text-anchor="middle" fill="#3b3b3b" font-size="12.5">records by species and month · effort</text>
+      <rect x="20" y="170" width="200" height="60" rx="10" fill="#eef5ea" stroke="#2f6f4e"/>
+      <text x="120" y="195" text-anchor="middle" font-weight="700" fill="#1d1d1b">Movebank</text>
+      <text x="120" y="216" text-anchor="middle" fill="#3b3b3b" font-size="12.5">published GPS tracking</text>
+      <rect x="20" y="245" width="200" height="60" rx="10" fill="#f7efe2" stroke="#e08a1e"/>
+      <text x="120" y="270" text-anchor="middle" font-weight="700" fill="#1d1d1b">Terrain (30 m)</text>
+      <text x="120" y="291" text-anchor="middle" fill="#3b3b3b" font-size="12.5">slope · ridges and passes</text>
+      <!-- layers -->
+      <path d="M220 50 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M220 125 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M220 200 H300 V140" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M220 275 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <rect x="305" y="20" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="45" text-anchor="middle" font-weight="700" fill="#1d1d1b">Exposure per cell</text>
+      <text x="415" y="66" text-anchor="middle" fill="#3b3b3b" font-size="12.5">km of line · pylons × hazard · turbines</text>
+      <rect x="305" y="95" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="120" text-anchor="middle" font-weight="700" fill="#1d1d1b">Presence by species and month</text>
+      <text x="415" y="141" text-anchor="middle" fill="#3b3b3b" font-size="12.5">records / effort, smoothed, + GPS</text>
+      <rect x="305" y="245" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="270" text-anchor="middle" font-weight="700" fill="#1d1d1b">Topographic factors</text>
+      <text x="415" y="291" text-anchor="middle" fill="#3b3b3b" font-size="12.5">+ collision on slopes and ridges</text>
+      <rect x="305" y="170" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b" stroke-dasharray="4 3"/>
+      <text x="415" y="195" text-anchor="middle" font-weight="700" fill="#1d1d1b">Sensitivity by species</text>
+      <text x="415" y="216" text-anchor="middle" fill="#3b3b3b" font-size="12.5">literature weights + legal status</text>
+      <!-- model -->
+      <path d="M525 50 H600 V150" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M525 125 H600" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M525 200 H600 V175" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M525 275 H600 V180" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <rect x="605" y="110" width="170" height="110" rx="12" fill="#b8321a"/>
+      <text x="690" y="150" text-anchor="middle" font-weight="700" fill="#fff" font-size="16">Risk index</text>
+      <text x="690" y="172" text-anchor="middle" fill="#fff" font-size="12.5">cell × species × month</text>
+      <text x="690" y="192" text-anchor="middle" fill="#fff" font-size="12.5">3 mechanisms</text>
+      <!-- outputs -->
+      <path d="M775 165 H840" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <rect x="845" y="40" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="70" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Monthly map</text>
+      <rect x="845" y="105" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="135" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Pylon ranking</text>
+      <rect x="845" y="170" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="200" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">GeoTIFF · CSV</text>
+      <rect x="845" y="235" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="258" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Score projects</text>
+      <text x="915" y="275" text-anchor="middle" fill="#3b3b3b" font-size="11.5">(consultations)</text>
+      <path d="M840 165 V65 H845 M840 165 V195 H845 M840 165 V260 H845" stroke="#8a857b" stroke-width="1.6" fill="none"/>
+    </g>
+  </svg>
+  </div>
+  <p class="note">The index is <b>relative to the region</b> (the 99th percentile equals 100): it ranks, it does not certify mortality.
+  A pylon with an index of 300 does not kill three times more than one with 100; it simply brings together more pylons, more sensitive birds and more
+  months of presence than 99% of the grid cells.</p>
+</div></section>
+
+<section class="cap" id="datos"><div class="wrap">
+  <h2><span class="num">3</span>Data used: all open, none behind a key</h2>
+  <p class="sub">The design condition was that anyone could run the project without asking for permission. That holds; the
+  only layer that requires a key (eBird Status &amp; Trends) is ready but not yet loaded.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Source</th><th>What it provides</th><th>Volume in the pilots</th><th>Licence</th></tr></thead>
+    <tbody>
+      <tr><td><b>OpenStreetMap</b> (Overpass)</td><td>Lines with voltage and operator, pylons and poles with their tags (material, insulator, taps), wind turbines</td>
+          <td>Cantabria: 46,300 pylons, 4,535 segments, 463 turbines<br>Strait: 2,703 pylons, 414 segments, 516 turbines</td><td>ODbL</td></tr>
+      <tr><td><b>GBIF</b>, which integrates the <b>eBird Observation Dataset</b></td><td>Georeferenced records by species, month and year since 2010. Records of <i>all</i> birds measure observation effort</td>
+          <td>Cantabria: 1.35 M bird records (effort), 101,000 of 18 species<br>Strait: 165,000 records of 16 species</td><td>CC0 / CC BY / CC BY-NC depending on the dataset</td></tr>
+      <tr><td><b>Movebank Data Repository</b></td><td>GPS tracks published alongside the scientific papers: where tagged individuals actually fly</td>
+          <td>Strait: 296,719 positions of black kite, 64,567 of white stork<br>Cantabria: 5 positions (no published datasets for the area)</td><td>CC0</td></tr>
+      <tr><td><b>AWS Terrain Tiles</b> (terrarium)</td><td>Elevation at 30 m → slope and topographic position index (ridges and passes)</td><td>Both regions in full</td><td>Public domain</td></tr>
+      <tr><td><b>Literature</b></td><td>Sensitivity weights by species and mechanism (Bevanger 1998, Janss 2000, Lehman 2007, Marques 2014) and status in the Spanish Catalogue of Threatened Species</td><td>21 species</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Species assessed</h3>
+  <p>Strait: griffon vulture, cinereous vulture, Egyptian vulture, Spanish imperial eagle, Bonelli's eagle, golden eagle, short-toed
+  snake eagle, booted eagle, European honey buzzard, black kite and red kite, peregrine falcon, white stork and black stork, common crane and
+  Eurasian eagle-owl. Cantabria swaps the Mediterranean species for bearded vulture, red-billed chough, Eurasian spoonbill and grey heron. Each
+  species carries a weight per mechanism (0-1) and a conservation weight, both adjustable in a single configuration file.</p>
+</div></section>
+
+<section class="cap" id="metodo"><div class="wrap">
+  <h2><span class="num">4</span>The method, step by step</h2>
+  <p class="sub">Everything happens on a grid of 0.005° cells (about 450 × 550 m). For each species <i>s</i>, month <i>m</i>
+  and cell, three indices are computed:</p>
+  <pre class="formula">electrocution[s,m] = P[s,m] · w_electro[s] · equivalent_pylons            (pylons ≤ 66 kV only)
+line_collision[s,m] = P[s,m] · w_col_lin[s] · km_of_line · (1 + terrain)
+turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge)</pre>
+  <ol class="steps">
+    <li><b>Download the infrastructure from OpenStreetMap</b><span>Lines classified by voltage: up to 66 kV is
+      distribution (electrocution risk, the scope of RD 1432/2008); above that, collision only. Pylons inherit the
+      voltage of their line. Where no pylons are mapped, 6 per km of distribution line are assumed.</span></li>
+    <li><b>Hazard rating of each pylon</b><span>A factor of 0.5-2 from the OSM tags: wood 0.5; pin insulator 1.5;
+      strain insulator 1.3; taps, sectioning points and line terminations 1.3; horizontal cross-arms 1.1; portal frames 1.3. With no tags,
+      1.0. Capped at 20 pylons per cell (more than that is a substation, not a power line).</span></li>
+    <li><b>Monthly presence P by species</b><span>Density of records of the species divided by the density of records of all
+      birds in the same month (this corrects for the fact that people observe more near roads and viewpoints). Adaptive Gaussian
+      smoothing: 1.5 km with 300 records or more in the month, wider with fewer. Records repeated at the same point, month and year
+      count as √n. Normalised to 0-1 per species.</span></li>
+    <li><b>GPS tracking where it exists</b><span>Individual-days per cell and month from the Movebank tracks,
+      blended into P with a weight that grows with the number of positions (up to 50% from 2,000 positions). Five fixes from a
+      passing bird do not move the map; 300,000 do.</span></li>
+    <li><b>Terrain</b><span>Slope (up to doubling the risk of collision with lines above 25°) and topographic position
+      index at 1.5 km (ridges and passes, where soaring birds cross low and where wind farms are built).</span></li>
+    <li><b>Aggregation and confidence</b><span>Each species adds to the total index with a weight of status × confidence, where confidence is
+      min(1, records/500) or grows with the GPS positions: a species with 120 records in the region (common crane in Cantabria) keeps
+      its own layer but does not dominate the ranking.</span></li>
+    <li><b>Scaling and ranking</b><span>Each index is rescaled so that the region's 99th percentile equals 100, without clipping
+      the maxima. Each pylon takes the electrocution index of its cell multiplied by its hazard rating; each segment, the
+      mean along its route; each wind turbine, that of its cell. The peak month and the three species contributing most
+      are stored.</span></li>
+    <li><b>Publish and repeat</b><span>Interactive map with layers by month, mechanism and species; report; CSV and GeoJSON of the
+      ranking; 12-band GeoTIFF for QGIS. An automated process recomputes everything on the 2nd of each month with the new records.</span></li>
+  </ol>
+</div></section>
+
+<section class="cap" id="resultados"><div class="wrap">
+  <h2><span class="num">5</span>Results so far</h2>
+  <p class="sub">Two pilots with opposite profiles: the Strait, with few pylons but a migration bottleneck and
+  a great deal of GPS data; Cantabria, with 46,000 pylons, no GPS and a mountain avifauna.</p>
+  <figure>
+    <img src="img/cantabria.en.png" alt="Annual risk index in Cantabria: cells coloured from yellow to dark red over a shaded relief map with the power lines in grey">
+    <div class="legend"><span><i class="ramp"></i> annual index (monthly maximum), from low to high; the background is shaded relief (green lowland, brown mountain, blue sea)</span>
+      <span><i style="background:#333"></i> OSM power lines (thick: transmission)</span><span><i style="background:#222;border-radius:50%"></i> wind turbines</span>
+      <span><i style="border:2px solid #222;border-radius:50%;background:transparent"></i> top 40 in the ranking</span></div>
+    <figcaption><b>Cantabria and its surroundings</b> (42.75-43.55° N · 4.90-3.10° W). The highest-index pylons are in the south of the
+    frame, in Las Merindades (Burgos), in February, with white stork, wintering red kite and griffon vulture. The riskiest
+    line segments are 12 kV and 30 kV lines on the floor of the Liébana valley, in July, beneath the passage of booted eagles, European honey buzzards and
+    short-toed snake eagles. Wind turbines peak in November on the eastern moorlands (red kite, griffon vulture, golden eagle). The
+    Campoo wind farms fall in cells with an index three times the 99th percentile.</figcaption>
+  </figure>
+  <figure style="max-width:900px">
+    <img src="img/estrecho.en.png" alt="Annual risk index in the Strait of Gibraltar over a shaded relief map">
+    <figcaption><b>Strait of Gibraltar</b> (36.00-36.45° N · 5.95-5.30° W). The 300,000 GPS positions of black kite
+    reinforce the sierras east of Tarifa, where the wind farms are concentrated. The riskiest distribution pylons
+    are in that same strip (El Cuartón-Pelayo) in October and November, with cinereous vulture, red kite and Bonelli's eagle;
+    lines and wind turbines peak in September and October, at the height of the post-breeding migration.</figcaption>
+  </figure>
+  <div class="grid g3">
+    <div class="card ok"><span class="tag">Model output</span><h4>Clear seasonality</h4><p>Cantabrian pylons peak in
+      February (wintering red kites and arriving storks); the Liébana lines in July; the wind turbines of the Strait
+      during the autumn passage. Retrofitting in the month before the peak is what matters to a utility.</p></div>
+    <div class="card ok"><span class="tag">Model output</span><h4>Projects scored</h4><p>The same raster scores any polygon
+      in seconds. Applied to the notices from the public consultation observatory, the Somaloma-Las Quemadas wind farm
+      (Campoo) reaches a maximum of 329, peaking in September.</p></div>
+    <div class="card warn"><span class="tag">Not yet</span><h4>No validation against real mortality</h4><p>The ranking is consistent
+      with what is known about each area, but nobody has gone out to check whether there are carcasses under the top 40 pylons. That is the first
+      action we are asking for (section 7).</p></div>
+  </div>
+</div></section>
+
+<section class="cap" id="retos"><div class="wrap">
+  <h2><span class="num">6</span>Challenges and problems encountered</h2>
+  <p class="sub">Each one changed the code. We set them out because they are the same ones anyone will meet who wants to reproduce
+  or extend the work.</p>
+  <ul class="tl">
+    <li><b>GBIF is not built for downloading hundreds of thousands of records</b>The search API becomes extremely slow with deep
+      offsets and returns 503 errors at peak times.<span class="fix">Download in annual blocks, most recent first, with
+      three threads, patient retries and a per-block cache so it can resume. Capped at 20,000 records per species and region.</span></li>
+    <li><b>Movebank cuts off large downloads</b>The published files range from 10 to 700 MB and the server closes the connection
+      halfway through (IncompleteRead); the direct API requires an account.<span class="fix">Streaming download filtering by region on the fly,
+      three retries, and files larger than 150 MB are skipped. Movebank is left out of the automated monthly process.</span></li>
+    <li><b>No published GPS dataset covers Cantabria</b>The data on bearded vulture, Egyptian vulture or the vultures of the Cantabrian range exist
+      but are not held in open repositories.<span class="fix">The GPS weight became proportional to the number of positions
+      so that the 5 positions found would not alter anything. The real fix is an agreement with whoever holds the data.</span></li>
+    <li><b>A single record could send the index soaring</b>A migrating black stork photographed next to a substation with 41 pylons
+      put that cell in first place for the whole of Cantabria.<span class="fix">Wider smoothing where there are few records,
+      √n weighting for stacked records, a cap of 20 pylons per cell and a confidence weight per species in the aggregate.</span></li>
+    <li><b>The main Overpass server kept failing</b><span class="fix">A list of mirrors with automatic fallback; the response is
+      cached, so in production OSM is queried once a month.</span></li>
+    <li><b>The map with 41,000 pylons weighed 37 MB and froze the browser</b><span class="fix">Lines go in a single
+      GeoJSON layer and only the 4,000 highest-index pylons are drawn; the rest are in the CSV and the GeoJSON. 7.8 MB.</span></li>
+    <li><b>OSM knows little about each pylon</b>Only 11% of Cantabria's pylons (5% in the Strait) carry any tag for
+      material, insulator or taps. The real hazard of the design, which is what determines electrocution, is known to the
+      utilities and is not public.<span class="fix">A default hazard factor of 1.0 and a clear list of which attributes
+      would change the ranking if someone provided them.</span></li>
+    <li><b>Records carry observer bias</b>Roads, viewpoints and hotspots concentrate records even where they do not concentrate birds; and
+      no record says at what height the bird was flying.<span class="fix">Correction for sampling effort (records of all birds) and GPS where
+      it exists. This is the main limitation and it motivates the next section.</span></li>
+    <li><b>There is no open mortality data in Spain</b>We looked for power line inventories and electrocution registers from the
+      regional governments, NGOs and LIFE projects: aggregate figures are published, not points.<span class="fix">What we found is
+      documented (the Basque Government's shapefile of dangerous lines is the only open one) and the statistical calibration
+      is ready for when the data arrive.</span></li>
+  </ul>
+</div></section>
+
+<section class="cap" id="mejoras"><div class="wrap">
+  <h2><span class="num">7</span>What would improve accuracy, in order</h2>
+  <p class="sub">The model already ranks; what is missing is to <b>calibrate it against reality</b> and refine the two weakest layers: the
+  actual presence of birds in rarely visited cells and the actual condition of each pylon.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Priority</th><th>Action</th><th>What it fixes</th><th>Who can help</th></tr></thead>
+    <tbody>
+      <tr><td><span class="prio p1">1</span></td><td><b>Field-check the top 40 pylons in each region</b>: photograph the
+        design, search for carcasses under the pylon, RD 1432/2008 form.</td><td>Validates the ranking and gives the first mortality
+        points for calibration. One weekend of volunteering per region.</td><td>Local NGO groups; environmental rangers.</td></tr>
+      <tr><td><span class="prio p1">1</span></td><td><b>Existing mortality records</b>: power line inventories from the regional
+        governments, wildlife rescue centres (cause of admission and coordinates), utility data and LIFE projects.</td>
+        <td>Replaces the literature weights with weights estimated by regression on real cases.</td>
+        <td>Public authorities and rescue centres, with the NGO as counterpart.</td></tr>
+      <tr><td><span class="prio p1">1</span></td><td><b>eBird Status &amp; Trends</b> as the main abundance layer (weekly, 3 km,
+        modelled with effort).</td><td>Removes much of the observer bias and fills in the cells with no records. The loader is already
+        written; what is missing is the key, which is being processed.</td><td>Cornell Lab (free research key).</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Acoustic stations with BirdNET</b> on wind turbines, on the pylons at the top of the
+        ranking and in rarely visited areas. A microphone plus a single-board computer (BirdNET-Pi or BirdWeather) that identifies songs and
+        calls continuously and publishes the detections; these can be uploaded to eBird as checklists.</td>
+        <td>Presence 24 hours a day, 365 days a year, without depending on an observer passing by: exact date and time of use of each site.
+        It works very well for choughs, cranes, storks, eagle-owls, jackdaws and passerines; poorly for vultures and eagles, which
+        barely vocalise. Hence it is combined with the next item.</td>
+        <td>NGOs and wind farm developers (the farms already have power and a network at each turbine).</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Cameras and radar at the wind farms</b>: the detection systems already fitted to
+        many wind turbines (selective shutdown) record species, height and trajectory.</td>
+        <td>Flight height, the variable that no record provides; and ground truth for collision with blades.</td>
+        <td>Developers; the authorities can require the records to be handed over in the environmental decision.</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Pylon design data from the utilities</b>: type of cross-arm, insulator, jumpers,
+        disconnectors on each pylon.</td><td>Real hazard ratings instead of the default 1.0 applied to 89% of the pylons.</td>
+        <td>Distribution companies (Viesgo/EDP, Endesa, i-DE), required to keep inventories under RD 1432/2008.</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>GPS from the local populations</b>: bearded vultures, Egyptian vultures and the vultures of the
+        Cantabrian range already carry transmitters from conservation programmes.</td><td>The layer that improved the Strait most does not exist in Cantabria.
+        An agreement on aggregated use (individual-days per cell) is enough, with no need to hand over tracks.</td>
+        <td>Fundación para la Conservación del Quebrantahuesos, GREFA, regional authorities.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Targeted citizen science</b>: the effort map itself flags the cells
+        with power lines and no records; ask observers to visit them.</td><td>Fills the gaps at zero cost.</td><td>NGO members, local eBird groups.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Validation in the Basque Country</b>: a new region and comparison with the Basque
+        Government's official shapefile of dangerous line segments.</td><td>A first independent check at no cost.</td><td>Us.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>PNOA LiDAR terrain (2-5 m)</b> and wind variables.</td>
+        <td>Better detection of passes and ascent slopes; seasonality of thermals.</td><td>IGN (open data).</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">On the microphones: automatic song identification is done not by eBird but by <b>BirdNET</b>, from the same
+  laboratory (Cornell Lab of Ornithology). A station costs around €100-150 in components, draws 5 W and detects at some
+  100-300 m depending on species and noise; on a wind turbine the microphone has to be kept away from the nacelle because of blade noise.
+  It provides presence and phenology with hourly precision, not flight height or collisions: it complements the cameras, it does not
+  replace them.</p>
+</div></section>
+
+<section class="cap" id="colaborar"><div class="wrap">
+  <h2><span class="num">8</span>What we ask for and what we offer</h2>
+  <div class="grid g2">
+    <div class="card"><h4>We ask for</h4><p>An institutional counterpart to request mortality records and pylon design data from
+      public authorities and utilities; local groups for the field check of the top pylons in the ranking; agreements on the
+      aggregated use of GPS data; and a pilot area in which to install the first acoustic stations.</p></div>
+    <div class="card"><h4>We offer</h4><p>Open, documented code with no licence costs; maps and rankings updated every
+      month; new regions in hours (all we need is the bounding box); automatic scoring of the wind farm and power line projects
+      that go out to public consultation, ready for consultation submissions; and GeoTIFF and CSV files that open in QGIS.</p></div>
+  </div>
+  <div class="cta">
+    <h3>Status and next steps</h3>
+    <p>A working prototype (version 0.1, September 2026) with two regions, an automated monthly process and a public website. In
+    progress: the eBird Status &amp; Trends key. Next: field checks of the top pylons and a validation region in
+    the Basque Country.</p>
+    <div class="btns">
+      <a class="btn" href="regions.en.html">Maps, rankings and downloads</a>
+      <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Repository and full method</a>
+      <a class="btn sec" href="https://github.com/Asensio94/observatorio-alegaciones">Public consultation observatory</a>
+    </div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  Data: © OpenStreetMap contributors (ODbL) · GBIF and eBird (under the licence of each dataset) · Movebank Data Repository (CC0) ·
+  AWS Terrain Tiles. The species weights come from Bevanger (1998), Janss (2000), Lehman et al. (2007), Marques et al. (2014) and
+  from RD 1432/2008. The index is a prioritisation tool, not a measure of mortality. Code released under the MIT licence.
+</div></footer>
+
+</body>
+</html>

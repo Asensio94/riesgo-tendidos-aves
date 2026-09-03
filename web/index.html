@@ -88,12 +88,17 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
 .svgbox{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px;overflow-x:auto}
 .svgbox svg{display:block;min-width:640px;width:100%;height:auto}
 .note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;max-width:760px}
+.lang{float:right;display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.lang a{color:var(--muted);text-decoration:none;padding:3px 10px;border-radius:999px;border:1px solid var(--line)}
+.lang a:hover{background:var(--chip);color:var(--ink)}
+.lang a.on{background:var(--chip);color:var(--sky);border-color:var(--sky)}
 </style>
 </head>
 <body>
 
 <header class="hero">
   <div class="wrap">
+    <div class="lang"><a class="on" href="index.html" aria-current="page">Español</a><a href="index.en.html">English</a></div>
     <div class="kicker">Proyecto abierto · septiembre de 2026 · versión 0.1</div>
     <h1>¿Qué apoyo corregimos primero?<br>Un mapa dinámico de riesgo de colisión y electrocución de aves</h1>
     <p class="lead">Cruzamos los tendidos eléctricos y aerogeneradores de OpenStreetMap con dónde y cuándo están las aves
@@ -101,7 +106,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
     especie y mes, y un ranking de los apoyos, tramos y aerogeneradores que más urge revisar. Se recalcula cada mes.
     Todo el código y los datos de salida son públicos.</p>
     <div class="btns">
-      <a class="btn" href="regiones.html">Ver los mapas y rankings</a>
+      <a class="btn" href="regions.es.html">Ver los mapas y rankings</a>
       <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Código y método (GitHub)</a>
     </div>
     <div class="stats">
@@ -412,7 +417,7 @@ colisión_aerogen[s,m] = P[s,m] · w_col_aer[s] · nº_aerogeneradores · (1 + c
     curso: clave de eBird Status &amp; Trends. Siguiente: comprobación en campo de los primeros apoyos y región de validación
     en Euskadi.</p>
     <div class="btns">
-      <a class="btn" href="regiones.html">Mapas, rankings y descargas</a>
+      <a class="btn" href="regions.es.html">Mapas, rankings y descargas</a>
       <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Repositorio y método completo</a>
       <a class="btn sec" href="https://github.com/Asensio94/observatorio-alegaciones">Observatorio de alegaciones</a>
     </div>

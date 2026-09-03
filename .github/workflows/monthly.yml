@@ -1,8 +1,8 @@
-name: Regenerar mapas de riesgo
+name: Rebuild risk maps
 
-# Recalcula todas las regiones el día 2 de cada mes (o a mano) y publica output/ en GitHub Pages.
-# Movebank se omite en CI: las descargas de cientos de MB y los cortes de conexión del repositorio no
-# encajan en un runner; se puede ejecutar en local y subir la caché como artefacto si se quiere.
+# Recomputes every region on the 2nd of each month (or on demand) and publishes output/ on GitHub Pages.
+# Movebank is skipped in CI: downloads of hundreds of MB and the repository's dropped connections do not
+# fit in a runner; it can be run locally and the cache uploaded as an artifact if needed.
 on:
   schedule:
     - cron: "17 4 2 * *"
@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  calcular:
+  compute:
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
@@ -28,20 +28,20 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Restaurar caché de descargas (GBIF, OSM, terreno)
+      - name: Restore the download cache (GBIF, OSM, terrain)
         uses: actions/cache/restore@v4
         with:
           path: data/cache
           key: cache-${{ github.run_id }}
           restore-keys: cache-
-      - name: Calcular regiones
+      - name: Compute the regions
         run: |
-          # si una región falla (Overpass/GBIF caídos) se publican las demás y la web del proyecto
+          # if one region fails (Overpass/GBIF down) the others and the project website are still published
           for region in estrecho cantabria; do
-            python -m riesgo.cli run --region "$region" || echo "::warning::fallo en la región $region"
+            python -m birdrisk.cli run --region "$region" || echo "::warning::region $region failed"
           done
-          python -m riesgo.cli indice
-      - name: Guardar caché de descargas
+          python -m birdrisk.cli index
+      - name: Save the download cache
         if: always()
         uses: actions/cache/save@v4
         with:
@@ -51,8 +51,8 @@ jobs:
         with:
           path: output
 
-  publicar:
-    needs: calcular
+  publish:
+    needs: compute
     runs-on: ubuntu-latest
     environment:
       name: github-pages
