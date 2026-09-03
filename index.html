@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riesgo de colisión y electrocución de aves · el proyecto</title>
+<meta name="description" content="Mapa dinámico de riesgo de colisión y electrocución de aves: método, datos, retos y cómo mejorar la precisión. Proyecto abierto para priorizar la corrección de tendidos y aerogeneradores.">
+<style>
+:root{
+  --bg:#f7f4ee; --paper:#ffffff; --ink:#1d1d1b; --muted:#5f5b53; --line:#e2ddd2;
+  --acc:#b8321a; --acc2:#e08a1e; --ok:#2f6f4e; --sky:#2b5f8a; --chip:#f1ece2;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15161a; --paper:#1e2026; --ink:#ecebe6; --muted:#a8a49c; --line:#2f323a; --chip:#282b33; --acc:#e4573a; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15161a; --paper:#1e2026; --ink:#ecebe6; --muted:#a8a49c; --line:#2f323a; --chip:#282b33; --acc:#e4573a; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--sky)}
+img{max-width:100%;display:block}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+header.hero{padding:64px 0 40px;border-bottom:1px solid var(--line)}
+.kicker{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:600}
+h1{font-size:clamp(30px,5vw,50px);line-height:1.08;margin:.3em 0 .4em;letter-spacing:-.01em}
+.lead{font-size:clamp(17px,2.2vw,21px);color:var(--muted);max-width:760px;margin:0 0 28px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:26px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-size:26px;letter-spacing:-.02em}
+.stat span{font-size:13px;color:var(--muted)}
+nav.toc{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:5;overflow-x:auto}
+nav.toc ol{display:flex;gap:4px;list-style:none;margin:0;padding:8px 0;white-space:nowrap}
+nav.toc a{display:block;padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted);text-decoration:none}
+nav.toc a:hover{background:var(--chip);color:var(--ink)}
+section.cap{padding:56px 0;border-bottom:1px solid var(--line)}
+.num{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;font-weight:700;margin-right:10px;font-size:15px}
+h2{font-size:clamp(24px,3.4vw,34px);margin:0 0 8px;letter-spacing:-.01em;display:flex;align-items:center}
+.sub{color:var(--muted);font-size:17px;margin:0 0 26px;max-width:760px}
+h3{font-size:19px;margin:28px 0 8px}
+p{max-width:760px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p{margin:0;font-size:14.5px;color:var(--muted)}
+.card .tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase}
+.card.acc{border-left:4px solid var(--acc)}
+.card.ok{border-left:4px solid var(--ok)}
+.card.warn{border-left:4px solid var(--acc2)}
+figure{margin:24px 0;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;overflow:hidden}
+figure img{border-radius:8px}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.45}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.ramp{background:linear-gradient(90deg,#fff5c8,#fecc5c,#fd8d3c,#e31a1c,#800026);width:70px!important}
+pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14px/1.55 ui-monospace,Consolas,monospace;overflow-x:auto;max-width:760px}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.steps li{position:relative;padding:14px 16px 14px 58px;background:var(--paper);border:1px solid var(--line);border-radius:12px}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:16px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--chip);color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.steps b{display:block;margin-bottom:2px}
+.steps span{font-size:14.5px;color:var(--muted)}
+.tl{list-style:none;padding:0;margin:0;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 22px 24px}
+.tl li::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--acc2);border:2px solid var(--bg)}
+.tl b{display:block}
+.tl .fix{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
+.tl .fix::before{content:"→ ";color:var(--ok);font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--chip);font-weight:600;font-size:13px}
+.tbl{overflow-x:auto;border-radius:12px}
+.prio{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+.p1{background:var(--acc)} .p2{background:var(--acc2)} .p3{background:var(--sky)}
+.cta{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:26px 28px;margin-top:20px}
+.cta h3{margin-top:0}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:15px}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
+.svgbox{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px;overflow-x:auto}
+.svgbox svg{display:block;min-width:640px;width:100%;height:auto}
+.note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;max-width:760px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Proyecto abierto · septiembre de 2026 · versión 0.1</div>
+    <h1>¿Qué apoyo corregimos primero?<br>Un mapa dinámico de riesgo de colisión y electrocución de aves</h1>
+    <p class="lead">Cruzamos los tendidos eléctricos y aerogeneradores de OpenStreetMap con dónde y cuándo están las aves
+    (citas de eBird y GBIF, seguimiento GPS de Movebank) y con el relieve, para producir un índice por celda de 500 m,
+    especie y mes, y un ranking de los apoyos, tramos y aerogeneradores que más urge revisar. Se recalcula cada mes.
+    Todo el código y los datos de salida son públicos.</p>
+    <div class="btns">
+      <a class="btn" href="regiones.html">Ver los mapas y rankings</a>
+      <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Código y método (GitHub)</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>2</b><span>regiones piloto: Estrecho de Gibraltar y Cantabria</span></div>
+      <div class="stat"><b>49 000</b><span>apoyos eléctricos evaluados</span></div>
+      <div class="stat"><b>4 950</b><span>tramos de línea · 979 aerogeneradores</span></div>
+      <div class="stat"><b>265 000</b><span>citas de 21 especies sensibles (2010-2026)</span></div>
+      <div class="stat"><b>361 000</b><span>posiciones GPS de milano negro y cigüeña blanca</span></div>
+      <div class="stat"><b>12</b><span>mapas mensuales por especie y mecanismo</span></div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap"><ol>
+  <li><a href="#problema">1 · El problema</a></li>
+  <li><a href="#idea">2 · La idea</a></li>
+  <li><a href="#datos">3 · Datos</a></li>
+  <li><a href="#metodo">4 · Método</a></li>
+  <li><a href="#resultados">5 · Resultados</a></li>
+  <li><a href="#retos">6 · Retos</a></li>
+  <li><a href="#mejoras">7 · Mejorar la precisión</a></li>
+  <li><a href="#colaborar">8 · Colaborar</a></li>
+</ol></div></nav>
+
+<section class="cap" id="problema"><div class="wrap">
+  <h2><span class="num">1</span>El problema: se sabe que matan, no se sabe cuál corregir primero</h2>
+  <p class="sub">Los tendidos de distribución electrocutan a las aves que se posan en sus apoyos; los conductores y las
+  palas de los aerogeneradores las golpean en vuelo. Son las principales causas de mortalidad no natural de grandes
+  rapaces y aves planeadoras en España.</p>
+  <div class="grid g3">
+    <div class="card acc"><span class="tag">Electrocución</span><h4>Apoyos de distribución (1-66 kV)</h4>
+      <p>El ave se posa en la cruceta y toca dos fases o fase y tierra. Depende del armado del apoyo, del tipo de aislador y de
+      si hay derivaciones o seccionadores. Afecta a buitres, águilas, cigüeñas, milanos y búho real.</p></div>
+    <div class="card acc"><span class="tag">Colisión con conductores</span><h4>Cualquier línea, sobre todo el cable de tierra</h4>
+      <p>Aves de vuelo poco maniobrable o en bando, al amanecer y al anochecer: grullas, cigüeñas, espátulas, garzas,
+      avutardas. Peor en laderas, collados y zonas de paso.</p></div>
+    <div class="card acc"><span class="tag">Colisión con aerogeneradores</span><h4>Palas en crestas y collados</h4>
+      <p>Planeadoras que usan las mismas corrientes ascendentes que justifican el parque: buitre leonado, alimoche,
+      quebrantahuesos, águila real, milanos.</p></div>
+  </div>
+  <h3>Lo que falta</h3>
+  <p>El Real Decreto 1432/2008 obliga a corregir las líneas peligrosas en zonas de protección, y hay estudios académicos
+  excelentes para lugares y años concretos. Pero no existe un servicio, actualizado y consultable, que diga a una eléctrica,
+  a una administración o a una ONG <b>qué elementos concretos revisar primero, en qué mes y por qué especie</b>. Las
+  correcciones se deciden con inventarios antiguos, con la mortalidad que alguien encontró por casualidad, o tramo a tramo
+  cuando llega la denuncia.</p>
+</div></section>
+
+<section class="cap" id="idea"><div class="wrap">
+  <h2><span class="num">2</span>La idea: riesgo = exposición × presencia × sensibilidad</h2>
+  <p class="sub">Un apoyo es peligroso si hay muchos apoyos peligrosos en el sitio, si allí hay aves sensibles y si están en
+  la época en que lo usan. Cada uno de esos factores se puede estimar con datos abiertos y actualizar solo.</p>
+  <div class="svgbox">
+  <svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama de flujo del proyecto">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a857b"/></marker></defs>
+    <g font-family="system-ui,sans-serif" font-size="14" fill="currentColor">
+      <!-- fuentes -->
+      <rect x="20" y="20" width="200" height="60" rx="10" fill="#e9f0f7" stroke="#2b5f8a"/>
+      <text x="120" y="45" text-anchor="middle" font-weight="700" fill="#1d1d1b">OpenStreetMap</text>
+      <text x="120" y="66" text-anchor="middle" fill="#3b3b3b" font-size="12.5">líneas · apoyos · aerogeneradores</text>
+      <rect x="20" y="95" width="200" height="60" rx="10" fill="#eef5ea" stroke="#2f6f4e"/>
+      <text x="120" y="120" text-anchor="middle" font-weight="700" fill="#1d1d1b">GBIF + eBird</text>
+      <text x="120" y="141" text-anchor="middle" fill="#3b3b3b" font-size="12.5">citas por especie y mes · esfuerzo</text>
+      <rect x="20" y="170" width="200" height="60" rx="10" fill="#eef5ea" stroke="#2f6f4e"/>
+      <text x="120" y="195" text-anchor="middle" font-weight="700" fill="#1d1d1b">Movebank</text>
+      <text x="120" y="216" text-anchor="middle" fill="#3b3b3b" font-size="12.5">seguimiento GPS publicado</text>
+      <rect x="20" y="245" width="200" height="60" rx="10" fill="#f7efe2" stroke="#e08a1e"/>
+      <text x="120" y="270" text-anchor="middle" font-weight="700" fill="#1d1d1b">Relieve (30 m)</text>
+      <text x="120" y="291" text-anchor="middle" fill="#3b3b3b" font-size="12.5">pendiente · crestas y collados</text>
+      <!-- capas -->
+      <path d="M220 50 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M220 125 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M220 200 H300 V140" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M220 275 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <rect x="305" y="20" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="45" text-anchor="middle" font-weight="700" fill="#1d1d1b">Exposición por celda</text>
+      <text x="415" y="66" text-anchor="middle" fill="#3b3b3b" font-size="12.5">km de línea · nº apoyos × peligrosidad · turbinas</text>
+      <rect x="305" y="95" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="120" text-anchor="middle" font-weight="700" fill="#1d1d1b">Presencia por especie y mes</text>
+      <text x="415" y="141" text-anchor="middle" fill="#3b3b3b" font-size="12.5">citas / esfuerzo, suavizado, + GPS</text>
+      <rect x="305" y="245" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="270" text-anchor="middle" font-weight="700" fill="#1d1d1b">Factores topográficos</text>
+      <text x="415" y="291" text-anchor="middle" fill="#3b3b3b" font-size="12.5">+ colisión en laderas y crestas</text>
+      <rect x="305" y="170" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b" stroke-dasharray="4 3"/>
+      <text x="415" y="195" text-anchor="middle" font-weight="700" fill="#1d1d1b">Sensibilidad por especie</text>
+      <text x="415" y="216" text-anchor="middle" fill="#3b3b3b" font-size="12.5">pesos bibliográficos + estatus legal</text>
+      <!-- modelo -->
+      <path d="M525 50 H600 V150" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M525 125 H600" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M525 200 H600 V175" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M525 275 H600 V180" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <rect x="605" y="110" width="170" height="110" rx="12" fill="#b8321a"/>
+      <text x="690" y="150" text-anchor="middle" font-weight="700" fill="#fff" font-size="16">Índice de riesgo</text>
+      <text x="690" y="172" text-anchor="middle" fill="#fff" font-size="12.5">celda × especie × mes</text>
+      <text x="690" y="192" text-anchor="middle" fill="#fff" font-size="12.5">3 mecanismos</text>
+      <!-- salidas -->
+      <path d="M775 165 H840" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <rect x="845" y="40" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="70" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Mapa mensual</text>
+      <rect x="845" y="105" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="135" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Ranking de apoyos</text>
+      <rect x="845" y="170" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="200" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">GeoTIFF · CSV</text>
+      <rect x="845" y="235" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="258" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Puntuar proyectos</text>
+      <text x="915" y="275" text-anchor="middle" fill="#3b3b3b" font-size="11.5">(alegaciones)</text>
+      <path d="M840 165 V65 H845 M840 165 V195 H845 M840 165 V260 H845" stroke="#8a857b" stroke-width="1.6" fill="none"/>
+    </g>
+  </svg>
+  </div>
+  <p class="note">El índice es <b>relativo a la región</b> (el percentil 99 vale 100): ordena, no certifica mortalidad.
+  Un apoyo con índice 300 no mata tres veces más que uno con 100; simplemente reúne más apoyos, más aves sensibles y más
+  meses de presencia que el 99 % de las celdas.</p>
+</div></section>
+
+<section class="cap" id="datos"><div class="wrap">
+  <h2><span class="num">3</span>Datos usados: todo abierto, nada con clave</h2>
+  <p class="sub">La condición de diseño fue que cualquiera pudiera ejecutar el proyecto sin pedir permisos. Se cumple; la
+  única capa que exige clave (eBird Status &amp; Trends) está preparada pero aún no cargada.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Fuente</th><th>Qué aporta</th><th>Volumen en los pilotos</th><th>Licencia</th></tr></thead>
+    <tbody>
+      <tr><td><b>OpenStreetMap</b> (Overpass)</td><td>Líneas con tensión y operador, apoyos y postes con sus etiquetas (material, aislador, derivaciones), aerogeneradores</td>
+          <td>Cantabria: 46 300 apoyos, 4 535 tramos, 463 turbinas<br>Estrecho: 2 703 apoyos, 414 tramos, 516 turbinas</td><td>ODbL</td></tr>
+      <tr><td><b>GBIF</b>, que integra el <b>eBird Observation Dataset</b></td><td>Citas georreferenciadas por especie, mes y año desde 2010. Las citas de <i>todas</i> las aves miden el esfuerzo de observación</td>
+          <td>Cantabria: 1,35 M citas de aves (esfuerzo), 101 000 de 18 especies<br>Estrecho: 165 000 citas de 16 especies</td><td>CC0 / CC BY / CC BY-NC según dataset</td></tr>
+      <tr><td><b>Movebank Data Repository</b></td><td>Trayectorias GPS publicadas con los artículos científicos: dónde vuelan de verdad los individuos marcados</td>
+          <td>Estrecho: 296 719 posiciones de milano negro, 64 567 de cigüeña blanca<br>Cantabria: 5 posiciones (no hay datasets publicados de la zona)</td><td>CC0</td></tr>
+      <tr><td><b>AWS Terrain Tiles</b> (terrarium)</td><td>Elevación a 30 m → pendiente e índice de posición topográfica (crestas y collados)</td><td>Ambas regiones completas</td><td>Público</td></tr>
+      <tr><td><b>Bibliografía</b></td><td>Pesos de sensibilidad por especie y mecanismo (Bevanger 1998, Janss 2000, Lehman 2007, Marques 2014) y estatus del Catálogo Español de Especies Amenazadas</td><td>21 especies</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Especies evaluadas</h3>
+  <p>Estrecho: buitre leonado, buitre negro, alimoche, águila imperial, perdicera, real, culebrera, calzada, abejero,
+  milano negro y real, halcón peregrino, cigüeña blanca y negra, grulla y búho real. Cantabria cambia las mediterráneas por
+  quebrantahuesos, chova piquirroja, espátula y garza real. Cada especie lleva un peso por mecanismo (0-1) y un peso de
+  conservación, ajustables en un único fichero de configuración.</p>
+</div></section>
+
+<section class="cap" id="metodo"><div class="wrap">
+  <h2><span class="num">4</span>Método paso a paso</h2>
+  <p class="sub">Todo ocurre sobre una malla de celdas de 0,005° (unos 450 × 550 m). Para cada especie <i>s</i>, mes <i>m</i>
+  y celda se calculan tres índices:</p>
+  <pre class="formula">electrocución[s,m] = P[s,m] · w_electro[s] · apoyos_equivalentes            (solo apoyos ≤ 66 kV)
+colisión_línea[s,m] = P[s,m] · w_col_lin[s] · km_de_línea · (1 + relieve)
+colisión_aerogen[s,m] = P[s,m] · w_col_aer[s] · nº_aerogeneradores · (1 + cresta)</pre>
+  <ol class="steps">
+    <li><b>Descargar la infraestructura de OpenStreetMap</b><span>Líneas clasificadas por tensión: hasta 66 kV son
+      distribución (riesgo de electrocución, ámbito del RD 1432/2008); por encima solo colisión. Los apoyos heredan la
+      tensión de su línea. Donde no hay apoyos mapeados se estiman 6 por km de línea de distribución.</span></li>
+    <li><b>Peligrosidad de cada apoyo</b><span>Factor 0,5-2 según las etiquetas OSM: madera 0,5; aislador rígido (pin) 1,5;
+      amarre 1,3; derivaciones, seccionamientos y finales de línea 1,3; crucetas horizontales 1,1; pórticos 1,3. Sin etiquetas,
+      1,0. Con tope de 20 apoyos por celda (más es una subestación, no un tendido).</span></li>
+    <li><b>Presencia mensual P por especie</b><span>Densidad de citas de la especie dividida por la densidad de citas de todas
+      las aves en el mismo mes (corrige que la gente observa más cerca de carreteras y miradores). Suavizado gaussiano
+      adaptativo: 1,5 km con 300 citas o más en el mes, más ancho con menos. Las citas repetidas en el mismo punto, mes y año
+      pesan √n. Se normaliza a 0-1 por especie.</span></li>
+    <li><b>Seguimiento GPS cuando existe</b><span>Individuos-día por celda y mes a partir de las trayectorias de Movebank,
+      mezclados con P con un peso que crece con el número de posiciones (hasta 50 % desde 2 000 posiciones). Cinco fijos de un
+      ave de paso no mueven el mapa; 300 000 sí.</span></li>
+    <li><b>Relieve</b><span>Pendiente (hasta duplicar el riesgo de colisión con líneas a partir de 25°) e índice de posición
+      topográfica en 1,5 km (crestas y collados, donde las planeadoras cruzan bajo y los parques eólicos se instalan).</span></li>
+    <li><b>Agregado y confianza</b><span>Cada especie suma al índice total con peso estatus × confianza, donde la confianza es
+      min(1, citas/500) o crece con las posiciones GPS: una especie con 120 citas en la región (grulla en Cantabria) mantiene
+      su capa propia pero no domina el ranking.</span></li>
+    <li><b>Escala y ranking</b><span>Cada índice se reescala para que el percentil 99 de la región valga 100, sin recortar
+      los máximos. Cada apoyo toma el índice de electrocución de su celda multiplicado por su peligrosidad; cada tramo, la
+      media a lo largo de su recorrido; cada aerogenerador, el de su celda. Se guarda el mes pico y las tres especies que más
+      aportan.</span></li>
+    <li><b>Publicar y repetir</b><span>Mapa interactivo con capas por mes, mecanismo y especie; informe; CSV y GeoJSON del
+      ranking; GeoTIFF de 12 bandas para QGIS. Un proceso automático recalcula todo el día 2 de cada mes con las citas nuevas.</span></li>
+  </ol>
+</div></section>
+
+<section class="cap" id="resultados"><div class="wrap">
+  <h2><span class="num">5</span>Resultados hasta ahora</h2>
+  <p class="sub">Dos pilotos con perfil opuesto: el Estrecho, con pocos apoyos pero un cuello de botella migratorio y
+  muchísimo GPS; Cantabria, con 46 000 apoyos, ningún GPS y una avifauna de montaña.</p>
+  <figure>
+    <img src="img/cantabria.png" alt="Índice anual de riesgo en Cantabria: celdas coloreadas de amarillo a granate sobre las líneas eléctricas en gris">
+    <div class="legend"><span><i class="ramp"></i> índice anual (máximo mensual), de bajo a alto</span>
+      <span><i style="background:#777"></i> tendidos OSM</span><span><i style="background:#222;border-radius:50%"></i> aerogeneradores</span>
+      <span><i style="border:2px solid #222;border-radius:50%;background:transparent"></i> 40 primeros del ranking</span></div>
+    <figcaption><b>Cantabria y su entorno</b> (42,75-43,55° N · 4,90-3,10° O). Los apoyos con mayor índice están en el sur del
+    recuadro, en Las Merindades (Burgos), en febrero, con cigüeña blanca, milano real invernante y buitre leonado. Los tramos
+    de línea con más riesgo son de 12 y 30 kV en el fondo del valle de Liébana, en julio, bajo el paso de calzadas, abejeros y
+    culebreras. Los aerogeneradores pican en noviembre en los páramos del este (milano real, buitre leonado, águila real). Los
+    parques eólicos de Campoo quedan en celdas con índice tres veces superior al percentil 99.</figcaption>
+  </figure>
+  <figure style="max-width:620px">
+    <img src="img/estrecho.png" alt="Índice anual de riesgo en el Estrecho de Gibraltar">
+    <figcaption><b>Estrecho de Gibraltar</b> (36,00-36,45° N · 5,95-5,30° O). El GPS de 300 000 posiciones de milano negro
+    refuerza las sierras al este de Tarifa, donde se concentran los parques eólicos. Los apoyos de distribución con más riesgo
+    están en esa misma franja (El Cuartón-Pelayo) en octubre y noviembre, con buitre negro, milano real y águila perdicera;
+    las líneas y los aerogeneradores pican en septiembre y octubre, en pleno paso postnupcial.</figcaption>
+  </figure>
+  <div class="grid g3">
+    <div class="card ok"><span class="tag">Sale del modelo</span><h4>Estacionalidad clara</h4><p>Los apoyos cantábricos pican en
+      febrero (invernada de milano real y llegada de cigüeñas); las líneas de Liébana en julio; los aerogeneradores del Estrecho
+      en el paso otoñal. Corregir en el mes anterior al pico es lo que importa a una eléctrica.</p></div>
+    <div class="card ok"><span class="tag">Sale del modelo</span><h4>Proyectos puntuados</h4><p>El mismo ráster puntúa en segundos
+      cualquier polígono. Aplicado a los anuncios del observatorio de alegaciones, el parque eólico Somaloma-Las Quemadas
+      (Campoo) obtiene un máximo de 329 con pico en septiembre.</p></div>
+    <div class="card warn"><span class="tag">Aún no</span><h4>Sin validación con mortalidad real</h4><p>El ranking es coherente
+      con lo que se sabe de cada zona, pero nadie ha ido a comprobar si bajo los 40 primeros apoyos hay restos. Es la primera
+      acción que pedimos (sección 7).</p></div>
+  </div>
+</div></section>
+
+<section class="cap" id="retos"><div class="wrap">
+  <h2><span class="num">6</span>Retos y problemas encontrados</h2>
+  <p class="sub">Cada uno cambió el código. Los contamos porque son los mismos que encontrará cualquiera que quiera reproducir
+  o ampliar el trabajo.</p>
+  <ul class="tl">
+    <li><b>GBIF no está hecho para descargar cientos de miles de citas</b>La API de búsqueda se hace lentísima con offsets
+      profundos y devuelve errores 503 en horas punta.<span class="fix">Descarga por bloques anuales, de reciente a antiguo, con
+      tres hilos, reintentos pacientes y caché por bloque para poder reanudar. Tope de 20 000 citas por especie y región.</span></li>
+    <li><b>Movebank corta las descargas grandes</b>Los ficheros publicados van de 10 a 700 MB y el servidor cierra la conexión a
+      mitad (IncompleteRead); la API directa exige cuenta.<span class="fix">Descarga en streaming filtrando por región al vuelo,
+      tres reintentos, y se omiten los ficheros de más de 150 MB. Movebank queda fuera del proceso mensual automático.</span></li>
+    <li><b>Ningún dataset GPS publicado cubre Cantabria</b>Los datos de quebrantahuesos, alimoche o buitre del Cantábrico existen
+      pero no están en repositorios abiertos.<span class="fix">El peso del GPS pasó a ser proporcional al número de posiciones
+      para que las 5 posiciones encontradas no alteraran nada. La solución real es un acuerdo con quien tiene los datos.</span></li>
+    <li><b>Una sola cita disparaba el índice</b>Una cigüeña negra de paso fotografiada junto a una subestación con 41 apoyos
+      colocaba esa celda en el primer puesto de toda Cantabria.<span class="fix">Suavizado más ancho cuando hay pocas citas,
+      peso √n a las citas apiladas, tope de 20 apoyos por celda y peso de confianza por especie en el agregado.</span></li>
+    <li><b>El servidor principal de Overpass fallaba</b><span class="fix">Lista de espejos con fallback automático; la respuesta se
+      cachea, así que en producción OSM se consulta una vez al mes.</span></li>
+    <li><b>El mapa de 41 000 apoyos pesaba 37 MB y colgaba el navegador</b><span class="fix">Las líneas van en una sola capa
+      GeoJSON y solo se dibujan los 4 000 apoyos de mayor índice; el resto está en el CSV y el GeoJSON. 7,8 MB.</span></li>
+    <li><b>OSM sabe poco de cada apoyo</b>Solo el 11 % de los apoyos de Cantabria (5 % en el Estrecho) tiene alguna etiqueta de
+      material, aislador o derivación. La peligrosidad real del armado, que es lo que decide la electrocución, la conocen las
+      eléctricas y no es pública.<span class="fix">Factor de peligrosidad 1,0 por defecto y una lista clara de qué atributos
+      cambiarían el ranking si alguien los aportara.</span></li>
+    <li><b>Las citas tienen sesgo de observador</b>Carreteras, miradores y hotspots concentran citas aunque no concentren aves; y
+      ninguna cita dice a qué altura volaba el ave.<span class="fix">Corrección por esfuerzo (citas de todas las aves) y GPS cuando
+      lo hay. Es la limitación principal y motiva la sección siguiente.</span></li>
+    <li><b>No hay un dato abierto de mortalidad en España</b>Buscamos censos de tendidos y registros de electrocución de las
+      comunidades autónomas, ONG y proyectos LIFE: se publican cifras agregadas, no puntos.<span class="fix">Documentado lo
+      encontrado (el shapefile de tendidos peligrosos del Gobierno Vasco es el único abierto) y preparado el ajuste estadístico
+      para cuando lleguen datos.</span></li>
+  </ul>
+</div></section>
+
+<section class="cap" id="mejoras"><div class="wrap">
+  <h2><span class="num">7</span>Qué mejoraría la precisión, por orden</h2>
+  <p class="sub">El modelo ya ordena; lo que falta es <b>calibrarlo con realidad</b> y afinar las dos capas más débiles: la
+  presencia real de aves en las celdas poco visitadas y el estado real de cada apoyo.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Prioridad</th><th>Acción</th><th>Qué corrige</th><th>Quién puede ayudar</th></tr></thead>
+    <tbody>
+      <tr><td><span class="prio p1">1</span></td><td><b>Comprobar en campo los 40 primeros apoyos de cada región</b>: fotografía del
+        armado, búsqueda de restos bajo el apoyo, ficha del RD 1432/2008.</td><td>Valida el ranking y da los primeros puntos de
+        mortalidad para calibrar. Un fin de semana de voluntariado por región.</td><td>Grupos locales de una ONG; agentes del medio natural.</td></tr>
+      <tr><td><span class="prio p1">1</span></td><td><b>Registros de mortalidad existentes</b>: censos de tendidos de las comunidades
+        autónomas, centros de recuperación (causa de ingreso y coordenadas), datos de las eléctricas y de proyectos LIFE.</td>
+        <td>Sustituye los pesos bibliográficos por pesos estimados con una regresión sobre casos reales.</td>
+        <td>Administraciones y centros de recuperación, con la ONG como interlocutor.</td></tr>
+      <tr><td><span class="prio p1">1</span></td><td><b>eBird Status &amp; Trends</b> como capa principal de abundancia (semanal, 3 km,
+        modelada con esfuerzo).</td><td>Elimina gran parte del sesgo de observador y rellena las celdas sin citas. El cargador ya está
+        escrito; falta la clave, que está en trámite.</td><td>Cornell Lab (clave gratuita para investigación).</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Estaciones acústicas con BirdNET</b> en aerogeneradores, apoyos de la cabecera del
+        ranking y zonas poco visitadas. Micrófono más un ordenador de placa (BirdNET-Pi o BirdWeather) que identifica cantos y
+        reclamos en continuo y publica las detecciones; se pueden volcar a eBird como listas.</td>
+        <td>Presencia 24 horas, 365 días, sin depender de que pase un observador: fecha y hora exactas de uso de cada sitio.
+        Funciona muy bien para chovas, grullas, cigüeñas, búho real, grajillas y paseriformes; poco para buitres y águilas, que
+        apenas vocalizan. Por eso se combina con la siguiente.</td>
+        <td>ONG y promotores eólicos (los parques ya tienen electricidad y red en cada turbina).</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Cámaras y radar en los parques</b>: los sistemas de detección que ya llevan
+        muchos aerogeneradores (parada selectiva) registran especie, altura y trayectoria.</td>
+        <td>Altura de vuelo, la variable que ninguna cita da; y verdad de campo para la colisión con palas.</td>
+        <td>Promotores; la administración puede exigir la cesión de los registros en la declaración ambiental.</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Datos de armado de las eléctricas</b>: tipo de cruceta, aislador, puentes,
+        seccionadores por apoyo.</td><td>Peligrosidad real en vez del 1,0 por defecto del 89 % de los apoyos.</td>
+        <td>Distribuidoras (Viesgo/EDP, Endesa, i-DE), obligadas a inventariar por el RD 1432/2008.</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>GPS de las poblaciones locales</b>: quebrantahuesos, alimoche y buitre del
+        Cantábrico ya llevan emisores de programas de conservación.</td><td>La capa que más mejoró el Estrecho no existe en Cantabria.
+        Basta un acuerdo de uso agregado (individuos-día por celda), sin ceder trayectorias.</td>
+        <td>Fundación para la Conservación del Quebrantahuesos, GREFA, administraciones autonómicas.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Ciencia ciudadana dirigida</b>: el propio mapa de esfuerzo señala las celdas
+        con tendidos y sin citas; pedir a observadores que las visiten.</td><td>Rellena huecos con coste cero.</td><td>Socios de la ONG, grupos locales de eBird.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Validación con Euskadi</b>: región nueva y comparación con el shapefile
+        oficial de tramos peligrosos del Gobierno Vasco.</td><td>Primer contraste independiente sin coste.</td><td>Nosotros.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Relieve LiDAR del PNOA (2-5 m)</b> y variables de viento.</td>
+        <td>Mejor detección de collados y laderas de ascenso; estacionalidad de térmicas.</td><td>IGN (datos abiertos).</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Sobre los micrófonos: la identificación automática de cantos no la hace eBird sino <b>BirdNET</b>, del mismo
+  laboratorio (Cornell Lab of Ornithology). Una estación cuesta unos 100-150 € en componentes, consume 5 W y detecta a unos
+  100-300 m según especie y ruido; en un aerogenerador hay que separar el micrófono de la góndola por el ruido de las palas.
+  Aporta presencia y fenología con precisión horaria, no altura de vuelo ni colisiones: es el complemento de las cámaras, no su
+  sustituto.</p>
+</div></section>
+
+<section class="cap" id="colaborar"><div class="wrap">
+  <h2><span class="num">8</span>Qué pedimos y qué ofrecemos</h2>
+  <div class="grid g2">
+    <div class="card"><h4>Pedimos</h4><p>Un interlocutor institucional para solicitar registros de mortalidad y datos de armado a
+      administraciones y eléctricas; grupos locales para la comprobación en campo de los primeros apoyos del ranking; acuerdos de
+      uso agregado de datos GPS; y una zona piloto donde instalar las primeras estaciones acústicas.</p></div>
+    <div class="card"><h4>Ofrecemos</h4><p>Código abierto y documentado, sin costes de licencia; mapas y rankings actualizados cada
+      mes; regiones nuevas en horas (solo hace falta el rectángulo); puntuación automática de los proyectos eólicos y de líneas
+      que salen a información pública, lista para alegaciones; y GeoTIFF y CSV que se abren en QGIS.</p></div>
+  </div>
+  <div class="cta">
+    <h3>Estado y siguientes pasos</h3>
+    <p>Prototipo funcional (versión 0.1, septiembre de 2026) con dos regiones, proceso mensual automático y web pública. En
+    curso: clave de eBird Status &amp; Trends. Siguiente: comprobación en campo de los primeros apoyos y región de validación
+    en Euskadi.</p>
+    <div class="btns">
+      <a class="btn" href="regiones.html">Mapas, rankings y descargas</a>
+      <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Repositorio y método completo</a>
+      <a class="btn sec" href="https://github.com/Asensio94/observatorio-alegaciones">Observatorio de alegaciones</a>
+    </div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  Datos: © colaboradores de OpenStreetMap (ODbL) · GBIF y eBird (según licencia de cada dataset) · Movebank Data Repository (CC0) ·
+  AWS Terrain Tiles. Los pesos por especie proceden de Bevanger (1998), Janss (2000), Lehman et al. (2007), Marques et al. (2014) y
+  del RD 1432/2008. El índice es una herramienta de priorización, no una medida de mortalidad. Código bajo licencia MIT.
+</div></footer>
+
+</body>
+</html>
