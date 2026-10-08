@@ -9,7 +9,7 @@ from html import escape
 import folium
 import numpy as np
 
-from . import config, i18n
+from . import config, i18n, site
 
 LINE_COLOUR = {"distribution": "#e67e22", "transmission": "#c0392b", "unknown": "#7f8c8d"}
 ELEMENT_COLOUR = {"pylon": "#e74c3c", "turbine": "#8e44ad", "line": "#d35400"}
@@ -160,6 +160,22 @@ def _lang_switch(current, other_href):
             f'<a href="{other_href}" hreflang="{other}">{i18n.t(current, "other_lang_name")}</a></p>')
 
 
+REPORT_CSS = site.PAGE_CSS + """
+.site-header .meta{margin:0}
+main{max-width:1440px;margin:0 auto;padding:0 16px 8px}
+main h2{font:700 22px/1.1 var(--font-title);text-transform:uppercase;letter-spacing:.03em;margin:1.6em 0 .5em;
+  padding-bottom:4px;border-bottom:1px solid var(--line)}
+main table{border-collapse:collapse;font-size:13px;width:100%;background:var(--paper)}
+main th,main td{border:1px solid var(--line);padding:3px 6px;text-align:left}
+main thead th{font:600 13px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.04em}
+iframe{display:block;width:100%;height:640px;border:1px solid var(--line);background:var(--paper)}
+.meta{color:var(--muted);font-size:14.5px}
+.wrap{overflow-x:auto}
+code{font-family:var(--font-data);font-size:.9em}
+@media (max-width:640px){iframe{height:70vh}}
+"""
+
+
 def report(path, map_rel, region_label, bbox, infra_summary, species_info, table, ranking, lang,
            other_lang_href, top=50, regions_href="../regions.{lang}.html"):
     """Write the HTML report of one region in one language."""
@@ -179,22 +195,23 @@ def report(path, map_rel, region_label, bbox, infra_summary, species_info, table
         f"<td>{info.get('confidence', '')}</td>"
         f"<td>{i18n.t(lang, 'yes') if info['included'] else i18n.t(lang, 'no_few_records')}</td></tr>"
         for sp, info in species_info.items())
-    html = f"""<!doctype html><html lang="{i18n.t(lang, 'html_lang')}"><head><meta charset="utf-8">
-<title>{escape(i18n.t(lang, 'report_title', region=region_label))}</title>
-<style>
- body{{font:14px/1.45 system-ui,sans-serif;margin:0;color:#222;background:#fff;color-scheme:light}}
- main{{max-width:1200px;margin:0 auto;padding:16px 24px}}
- h1{{font-size:22px;margin:.2em 0}} h2{{font-size:17px;margin:1.6em 0 .5em;border-bottom:1px solid #ddd}}
- table{{border-collapse:collapse;font-size:12.5px;width:100%}}
- th,td{{border:1px solid #e3e3e3;padding:3px 6px;text-align:left}}
- th{{background:#f5f5f5}} iframe{{width:100%;height:640px;border:1px solid #ccc}} .meta{{color:#666}}
- .wrap{{overflow-x:auto}} code{{background:#f3f3f3;padding:0 3px}}
- .lang{{float:right;margin:0;font-size:12.5px}}
- .lang a,.lang span{{padding:2px 8px;border:1px solid #ddd;border-radius:99px;margin-left:4px;text-decoration:none}}
- .lang .on{{background:#f0f0f0;color:#555}}
-</style></head><body><main>
+    included = sum(1 for info in species_info.values() if info["included"])
+    figures = site.figures_html([
+        (i18n.num(infra_summary["lines"], lang), i18n.t(lang, "fig_line_segments")),
+        (i18n.num(infra_summary["pylons"], lang), i18n.t(lang, "fig_pylons")),
+        (i18n.num(infra_summary["turbines"], lang), i18n.t(lang, "fig_turbines")),
+        (i18n.num(included, lang), i18n.t(lang, "fig_species")),
+    ])
+    html = f"""{site.page_head(lang, i18n.t(lang, 'report_title', region=region_label), REPORT_CSS)}<body>
+<header class="site-header">
 {_lang_switch(lang, other_lang_href)}
-<h1>{escape(i18n.t(lang, 'site_title'))}</h1>
+<h1>{i18n.t(lang, 'h1_html')}</h1>
+<p class="lede">{escape(i18n.t(lang, 'report_lede', region=region_label))}</p>
+<p class="meta">{escape(i18n.t(lang, 'report_meta', region=region_label, bbox=bbox, date=date.today().isoformat()))}
+ · <a href="{regions_href.format(lang=lang)}">{escape(i18n.t(lang, 'back_to_regions'))}</a></p>
+{figures}
+</header>
+<main>
 <p class="meta">{escape(i18n.t(lang, 'report_meta', region=region_label, bbox=bbox, date=date.today().isoformat()))}
  · <a href="{regions_href.format(lang=lang)}">{escape(i18n.t(lang, 'back_to_regions'))}</a></p>
 <iframe src="{map_rel}" loading="lazy"></iframe>
@@ -227,10 +244,10 @@ def report(path, map_rel, region_label, bbox, infra_summary, species_info, table
 <th>{escape(i18n.t(lang, 'th_category'))}</th><th>{escape(i18n.t(lang, 'th_operator'))}</th>
 <th>{escape(i18n.t(lang, 'th_osm'))}</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p>{i18n.t(lang, 'ranking_files')}</p>
-
-<h2>{escape(i18n.t(lang, 'h2_method'))}</h2>
-{i18n.method_html(lang)}
-</main></body></html>"""
+</main>
+{site.method_section(lang)}
+{site.site_footer(lang)}
+</body></html>"""
     path.write_text(html, encoding="utf-8")
 
 
