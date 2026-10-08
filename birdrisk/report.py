@@ -205,7 +205,7 @@ def report(path, map_rel, region_label, bbox, infra_summary, species_info, table
     html = f"""{site.page_head(lang, i18n.t(lang, 'report_title', region=region_label), REPORT_CSS)}<body>
 <header class="site-header">
 {_lang_switch(lang, other_lang_href)}
-<h1>{i18n.t(lang, 'h1_html')}</h1>
+<h1>{site.LOGO_SVG}{i18n.t(lang, 'h1_html')}</h1>
 <p class="lede">{escape(i18n.t(lang, 'report_lede', region=region_label))}</p>
 <p class="meta">{escape(i18n.t(lang, 'report_meta', region=region_label, bbox=bbox, date=date.today().isoformat()))}
  · <a href="{regions_href.format(lang=lang)}">{escape(i18n.t(lang, 'back_to_regions'))}</a></p>
