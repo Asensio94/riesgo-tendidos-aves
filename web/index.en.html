@@ -5,57 +5,125 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bird collision and electrocution risk · the project</title>
 <meta name="description" content="A dynamic map of collision and electrocution risk for birds: method, data, challenges and how to improve accuracy. An open project to prioritise the retrofitting of power lines and wind turbines.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
 <style>
+/* common.css v1 — shared look of the nine open-data projects (vigia-incendios is the reference).
+   Copy this file verbatim into each repo; change it in all repos at once, never in one.
+   Each repo sets only --accent and --accent-dark below it and adds its own rules after it.
+
+   Type:  Barlow Condensed for titles and labels, Source Serif 4 for reading, IBM Plex Mono for
+          figures, codes and dates. Load them with:
+   https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap */
+
 :root{
-  --bg:#f7f4ee; --paper:#ffffff; --ink:#1d1d1b; --muted:#5f5b53; --line:#e2ddd2;
-  --acc:#b8321a; --acc2:#e08a1e; --ok:#2f6f4e; --sky:#2b5f8a; --chip:#f1ece2;
+  --ground:#f0edea; --paper:#faf8f6; --ink:#221d1a; --muted:#6b625c; --line:#dad2cb;
+  --accent:#c2410c; --accent-dark:#fb7b3e;
+  --natura:#2f7a55; --natura-dark:#62b88a;
+  --shadow:0 1px 0 rgba(34,29,26,.06), 0 6px 18px -10px rgba(34,29,26,.28);
+  --font-title:"Barlow Condensed","Arial Narrow",sans-serif;
+  --font-text:"Source Serif 4",Georgia,serif;
+  --font-data:"IBM Plex Mono",ui-monospace,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#15161a; --paper:#1e2026; --ink:#ecebe6; --muted:#a8a49c; --line:#2f323a; --chip:#282b33; --acc:#e4573a; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6;
+    --ground:#15110f; --paper:#1d1815; --ink:#ede6e0; --muted:#a69a91; --line:#362d28;
+    --accent:var(--accent-dark); --natura:var(--natura-dark);
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 8px 22px -12px rgba(0,0,0,.7);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#15161a; --paper:#1e2026; --ink:#ecebe6; --muted:#a8a49c; --line:#2f323a; --chip:#282b33; --acc:#e4573a; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6;
+  --ground:#15110f; --paper:#1d1815; --ink:#ede6e0; --muted:#a69a91; --line:#362d28;
+  --accent:var(--accent-dark); --natura:var(--natura-dark);
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 8px 22px -12px rgba(0,0,0,.7);
   color-scheme:dark;
 }
-*{box-sizing:border-box}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:17px/1.55 var(--font-text);overflow-wrap:break-word}
+a{color:inherit;text-decoration-color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+img,svg{max-width:100%}
+
+/* Header: «PROJECT NAME» with the key word in the accent colour, one sentence, then the figures. */
+.site-header{max-width:1440px;margin:0 auto;padding:28px 16px 18px;display:grid;gap:14px}
+.site-header h1{margin:0;font:700 clamp(40px,6vw,64px)/.9 var(--font-title);text-transform:uppercase;letter-spacing:.02em}
+.site-header h1 span{color:var(--accent)}
+.site-header .lede{margin:0;max-width:72ch;font-size:18px}
+.figures{display:flex;flex-wrap:wrap;gap:12px 28px;margin:0;padding:12px 0 0;border-top:1px solid var(--line)}
+.figures div{display:grid;gap:2px}
+.figures b{font:600 30px/1 var(--font-data);font-variant-numeric:tabular-nums;color:var(--accent)}
+.figures span{font:600 13px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+/* Text roles */
+.label{font-family:var(--font-title);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.data{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:14.5px}
+.badge{display:inline-block;font:600 12px/1 var(--font-title);text-transform:uppercase;letter-spacing:.09em;padding:4px 7px 3px;border:1.5px solid currentColor;color:var(--accent)}
+
+/* Cards and panels */
+.card{background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);padding:16px}
+
+/* Method section: how every figure is computed, step by step */
+.method{max-width:1440px;margin:0 auto;padding:24px 16px}
+.method h2{margin:0 0 6px;font:700 28px/1 var(--font-title);text-transform:uppercase;letter-spacing:.03em}
+.method h3{margin:18px 0 4px;font:600 18px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.06em}
+.method p,.method li{max-width:72ch}
+table.params{border-collapse:collapse;font-size:14.5px;width:100%;max-width:900px}
+table.params th,table.params td{text-align:left;vertical-align:top;padding:6px 10px 6px 0;border-bottom:1px solid var(--line)}
+table.params th{font:600 14px/1.3 var(--font-title);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;padding-right:16px}
+table.params td.num,table.params th.num{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-nums}
+
+/* Footer: sources, licence, the shared principle and the sibling projects */
+.site-footer{max-width:1440px;margin:0 auto;padding:16px 16px 40px;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line);display:grid;gap:10px}
+.site-footer .principle{margin:0;color:var(--ink);font-style:italic}
+.siblings{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;list-style:none}
+.siblings li a{text-decoration-color:var(--line)}
+.siblings li[aria-current] a{color:var(--ink);text-decoration-color:var(--accent);font-weight:600}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .figures b{font-size:24px}
+}
+:root{--accent:#8a5a00;--accent-dark:#e3a93c}
+/* Repo tokens point at the common ones; colours with a meaning (priorities, diagram, map ramp) stay here. */
+:root{
+  --bg:var(--ground); --acc:var(--accent);
+  --acc2:#e08a1e; --ok:#2f6f4e; --sky:#2b5f8a; --chip:#f1ece2;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--chip:#282b33; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6}
+}
+:root[data-theme="dark"]{--chip:#282b33; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-a{color:var(--sky)}
-img{max-width:100%;display:block}
-.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
-header.hero{padding:64px 0 40px;border-bottom:1px solid var(--line)}
-.kicker{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:600}
-.lang{float:right;display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
-.lang a{color:var(--muted);text-decoration:none;padding:3px 10px;border-radius:999px;border:1px solid var(--line)}
-.lang a:hover{background:var(--chip);color:var(--ink)}
-.lang a.on{background:var(--chip);color:var(--sky);border-color:var(--sky)}
-h1{font-size:clamp(30px,5vw,50px);line-height:1.08;margin:.3em 0 .4em;letter-spacing:-.01em}
-.lead{font-size:clamp(17px,2.2vw,21px);color:var(--muted);max-width:760px;margin:0 0 28px}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:26px}
-.stat{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.stat b{display:block;font-size:26px;letter-spacing:-.02em}
-.stat span{font-size:13px;color:var(--muted)}
-nav.toc{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);z-index:5;overflow-x:auto}
+.cap,.method{scroll-margin-top:56px}
+img{display:block}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.site-header,.method,.site-footer{max-width:1040px}
+.site-header .lang{justify-self:end}
+.kicker{font:600 14px/1.2 var(--font-title);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.site-header .note{margin:0;max-width:72ch}
+.site-header .btns{margin-top:0}
+nav.toc{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);border-top:1px solid var(--line);z-index:5;overflow-x:auto}
 nav.toc ol{display:flex;gap:4px;list-style:none;margin:0;padding:8px 0;white-space:nowrap}
-nav.toc a{display:block;padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted);text-decoration:none}
+nav.toc a{display:block;padding:6px 10px;border-radius:999px;font:600 14px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-decoration:none}
 nav.toc a:hover{background:var(--chip);color:var(--ink)}
 section.cap{padding:56px 0;border-bottom:1px solid var(--line)}
-.num{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;font-weight:700;margin-right:10px;font-size:15px}
-h2{font-size:clamp(24px,3.4vw,34px);margin:0 0 8px;letter-spacing:-.01em;display:flex;align-items:center}
+h2 .num{display:inline-flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;border-radius:50%;background:var(--acc);color:var(--paper);font:600 17px/1 var(--font-data);margin-right:10px}
+h2,h3,h4{font-family:var(--font-title)}
+h2{font-size:clamp(26px,3.6vw,36px);line-height:1.1;margin:0 0 8px;letter-spacing:.01em;display:flex;align-items:center}
 .sub{color:var(--muted);font-size:17px;margin:0 0 26px;max-width:760px}
-h3{font-size:19px;margin:28px 0 8px}
+h3{font-size:21px;margin:28px 0 8px;letter-spacing:.02em}
 p{max-width:760px}
 .grid{display:grid;gap:16px}
-.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
-.card h4{margin:0 0 6px;font-size:16px}
+.card h4{margin:0 0 6px;font-size:18px}
 .card p{margin:0;font-size:14.5px;color:var(--muted)}
-.card .tag{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase}
+.card .tag{display:inline-block;font:600 12px/1.4 var(--font-title);padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted);margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase}
 .card.acc{border-left:4px solid var(--acc)}
 .card.ok{border-left:4px solid var(--ok)}
 .card.warn{border-left:4px solid var(--acc2)}
@@ -65,10 +133,10 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.45}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
 .ramp{background:linear-gradient(90deg,#fff5c8,#fecc5c,#fd8d3c,#e31a1c,#800026);width:70px!important}
-pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14px/1.55 ui-monospace,Consolas,monospace;overflow-x:auto;max-width:760px}
+pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14px/1.55 var(--font-data);overflow-x:auto;max-width:760px}
 .steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:12px}
-.steps li{position:relative;padding:14px 16px 14px 58px;background:var(--paper);border:1px solid var(--line);border-radius:12px}
-.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:16px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--chip);color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.steps li{position:relative;padding:14px 16px 14px 58px;background:var(--paper);border:1px solid var(--line);border-radius:12px;max-width:none}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:16px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--chip);color:var(--ink);font:600 14px/1 var(--font-data);display:flex;align-items:center;justify-content:center}
 .steps b{display:block;margin-bottom:2px}
 .steps span{font-size:14.5px;color:var(--muted)}
 .tl{list-style:none;padding:0;margin:0;border-left:2px solid var(--line)}
@@ -77,46 +145,52 @@ pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14p
 .tl b{display:block}
 .tl .fix{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
 .tl .fix::before{content:"→ ";color:var(--ok);font-weight:700}
-table{border-collapse:collapse;width:100%;font-size:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-th{background:var(--chip);font-weight:600;font-size:13px}
 .tbl{overflow-x:auto;border-radius:12px}
-.prio{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
-.p1{background:var(--acc)} .p2{background:var(--acc2)} .p3{background:var(--sky)}
+.tbl table{border-collapse:collapse;width:100%;font-size:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tbl th,.tbl td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{background:var(--chip);font:600 14px/1.3 var(--font-title);text-transform:uppercase;letter-spacing:.04em}
+.prio{font:600 13px/1.4 var(--font-data);padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+.p1{background:var(--acc);color:var(--paper)} .p2{background:var(--acc2)} .p3{background:var(--sky)}
 .cta{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:26px 28px;margin-top:20px}
 .cta h3{margin-top:0}
 .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
-.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--acc);color:#fff;text-decoration:none;font-weight:600;font-size:15px}
+.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--acc);color:var(--paper);text-decoration:none;font:600 16px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.05em}
 .btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
-footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
 .svgbox{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px;overflow-x:auto}
 .svgbox svg{display:block;min-width:640px;width:100%;height:auto}
 .note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;max-width:760px}
+.lang{display:inline-flex;gap:6px;align-items:center;font:600 13px/1 var(--font-title);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.lang a{color:var(--muted);text-decoration:none;padding:4px 10px 3px;border-radius:999px;border:1px solid var(--line)}
+.lang a:hover{background:var(--chip);color:var(--ink)}
+.lang a.on{color:var(--accent);border-color:var(--accent)}
+.method code{font-family:var(--font-data);font-size:.9em}
+@media (max-width:640px){
+  section.cap{padding:40px 0}
+  .cta{padding:20px 16px}
+  .steps li{padding-left:52px}
+  table.params th{white-space:normal}
+}
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="wrap">
-    <div class="lang"><a href="index.html">Español</a><a class="on" href="index.en.html" aria-current="page">English</a></div>
-    <div class="kicker">Open project · September 2026 · version 0.1</div>
-    <h1>Which pylon do we fix first?<br>A dynamic map of bird collision and electrocution risk</h1>
-    <p class="lead">We cross the power lines and wind turbines in OpenStreetMap with where and when the birds are
-    (eBird and GBIF records, Movebank GPS tracking) and with the terrain, to produce an index per 500 m grid cell,
-    species and month, and a ranking of the pylons, line segments and wind turbines most urgently in need of review.
-    It is recalculated every month. All the code and the output data are public.</p>
-    <div class="btns">
+<header class="site-header">
+  <div class="lang"><a href="index.html">Español</a><a class="on" href="index.en.html" aria-current="page">English</a></div>
+  <p class="kicker">Open project · September 2026 · version 0.1</p>
+  <h1><span>Power-line</span> risk for birds</h1>
+  <p class="lede">A dynamic map of bird collision and electrocution risk: it crosses the power lines and wind turbines in OpenStreetMap with where and when the birds are (eBird and GBIF records, Movebank GPS tracking) and with the terrain, to decide which pylon, line segment or wind turbine to fix first.</p>
+  <p class="note">It produces an index per 500 m grid cell, species and month, and a ranking of the pylons, line segments and wind turbines most urgently in need of review. It is recalculated every month. All the code and the output data are public.</p>
+  <div class="btns">
       <a class="btn" href="regions.en.html">See the maps and rankings</a>
       <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Code and method (GitHub)</a>
     </div>
-    <div class="stats">
-      <div class="stat"><b>2</b><span>pilot regions: Strait of Gibraltar and Cantabria</span></div>
-      <div class="stat"><b>49,000</b><span>pylons assessed</span></div>
-      <div class="stat"><b>4,950</b><span>line segments · 979 wind turbines</span></div>
-      <div class="stat"><b>265,000</b><span>records of 21 sensitive species (2010-2026)</span></div>
-      <div class="stat"><b>361,000</b><span>GPS positions of black kite and white stork</span></div>
-      <div class="stat"><b>12</b><span>monthly maps by species and mechanism</span></div>
-    </div>
+  <div class="figures">
+    <div><b>2</b><span>pilot regions: Strait of Gibraltar and Cantabria</span></div>
+    <div><b>49,000</b><span>pylons assessed</span></div>
+    <div><b>4,950</b><span>line segments · 979 wind turbines</span></div>
+    <div><b>265,000</b><span>records of 21 sensitive species (2010-2026)</span></div>
+    <div><b>361,000</b><span>GPS positions of black kite and white stork</span></div>
+    <div><b>12</b><span>monthly maps by species and mechanism</span></div>
   </div>
 </header>
 
@@ -124,11 +198,11 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
   <li><a href="#problema">1 · The problem</a></li>
   <li><a href="#idea">2 · The idea</a></li>
   <li><a href="#datos">3 · Data</a></li>
-  <li><a href="#metodo">4 · Method</a></li>
-  <li><a href="#resultados">5 · Results</a></li>
-  <li><a href="#retos">6 · Challenges</a></li>
-  <li><a href="#mejoras">7 · Improving accuracy</a></li>
-  <li><a href="#colaborar">8 · Get involved</a></li>
+  <li><a href="#resultados">4 · Results</a></li>
+  <li><a href="#retos">5 · Challenges</a></li>
+  <li><a href="#mejoras">6 · Improving accuracy</a></li>
+  <li><a href="#colaborar">7 · Get involved</a></li>
+  <li><a href="#metodo">How it is computed</a></li>
 </ol></div></nav>
 
 <section class="cap" id="problema"><div class="wrap">
@@ -198,7 +272,7 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
       <path d="M525 125 H600" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
       <path d="M525 200 H600 V175" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
       <path d="M525 275 H600 V180" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
-      <rect x="605" y="110" width="170" height="110" rx="12" fill="#b8321a"/>
+      <rect x="605" y="110" width="170" height="110" rx="12" fill="#8a5a00"/>
       <text x="690" y="150" text-anchor="middle" font-weight="700" fill="#fff" font-size="16">Risk index</text>
       <text x="690" y="172" text-anchor="middle" fill="#fff" font-size="12.5">cell × species × month</text>
       <text x="690" y="192" text-anchor="middle" fill="#fff" font-size="12.5">3 mechanisms</text>
@@ -246,43 +320,8 @@ footer{padding:36px 0 60px;color:var(--muted);font-size:14px}
   species carries a weight per mechanism (0-1) and a conservation weight, both adjustable in a single configuration file.</p>
 </div></section>
 
-<section class="cap" id="metodo"><div class="wrap">
-  <h2><span class="num">4</span>The method, step by step</h2>
-  <p class="sub">Everything happens on a grid of 0.005° cells (about 450 × 550 m). For each species <i>s</i>, month <i>m</i>
-  and cell, three indices are computed:</p>
-  <pre class="formula">electrocution[s,m] = P[s,m] · w_electro[s] · equivalent_pylons            (pylons ≤ 66 kV only)
-line_collision[s,m] = P[s,m] · w_col_lin[s] · km_of_line · (1 + terrain)
-turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge)</pre>
-  <ol class="steps">
-    <li><b>Download the infrastructure from OpenStreetMap</b><span>Lines classified by voltage: up to 66 kV is
-      distribution (electrocution risk, the scope of RD 1432/2008); above that, collision only. Pylons inherit the
-      voltage of their line. Where no pylons are mapped, 6 per km of distribution line are assumed.</span></li>
-    <li><b>Hazard rating of each pylon</b><span>A factor of 0.5-2 from the OSM tags: wood 0.5; pin insulator 1.5;
-      strain insulator 1.3; taps, sectioning points and line terminations 1.3; horizontal cross-arms 1.1; portal frames 1.3. With no tags,
-      1.0. Capped at 20 pylons per cell (more than that is a substation, not a power line).</span></li>
-    <li><b>Monthly presence P by species</b><span>Density of records of the species divided by the density of records of all
-      birds in the same month (this corrects for the fact that people observe more near roads and viewpoints). Adaptive Gaussian
-      smoothing: 1.5 km with 300 records or more in the month, wider with fewer. Records repeated at the same point, month and year
-      count as √n. Normalised to 0-1 per species.</span></li>
-    <li><b>GPS tracking where it exists</b><span>Individual-days per cell and month from the Movebank tracks,
-      blended into P with a weight that grows with the number of positions (up to 50% from 2,000 positions). Five fixes from a
-      passing bird do not move the map; 300,000 do.</span></li>
-    <li><b>Terrain</b><span>Slope (up to doubling the risk of collision with lines above 25°) and topographic position
-      index at 1.5 km (ridges and passes, where soaring birds cross low and where wind farms are built).</span></li>
-    <li><b>Aggregation and confidence</b><span>Each species adds to the total index with a weight of status × confidence, where confidence is
-      min(1, records/500) or grows with the GPS positions: a species with 120 records in the region (common crane in Cantabria) keeps
-      its own layer but does not dominate the ranking.</span></li>
-    <li><b>Scaling and ranking</b><span>Each index is rescaled so that the region's 99th percentile equals 100, without clipping
-      the maxima. Each pylon takes the electrocution index of its cell multiplied by its hazard rating; each segment, the
-      mean along its route; each wind turbine, that of its cell. The peak month and the three species contributing most
-      are stored.</span></li>
-    <li><b>Publish and repeat</b><span>Interactive map with layers by month, mechanism and species; report; CSV and GeoJSON of the
-      ranking; 12-band GeoTIFF for QGIS. An automated process recomputes everything on the 2nd of each month with the new records.</span></li>
-  </ol>
-</div></section>
-
 <section class="cap" id="resultados"><div class="wrap">
-  <h2><span class="num">5</span>Results so far</h2>
+  <h2><span class="num">4</span>Results so far</h2>
   <p class="sub">Two pilots with opposite profiles: the Strait, with few pylons but a migration bottleneck and
   a great deal of GPS data; Cantabria, with 46,000 pylons, no GPS and a mountain avifauna.</p>
   <figure>
@@ -312,12 +351,12 @@ turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge
       (Campoo) reaches a maximum of 329, peaking in September.</p></div>
     <div class="card warn"><span class="tag">Not yet</span><h4>No validation against real mortality</h4><p>The ranking is consistent
       with what is known about each area, but nobody has gone out to check whether there are carcasses under the top 40 pylons. That is the first
-      action we are asking for (section 7).</p></div>
+      action we are asking for (section 6).</p></div>
   </div>
 </div></section>
 
 <section class="cap" id="retos"><div class="wrap">
-  <h2><span class="num">6</span>Challenges and problems encountered</h2>
+  <h2><span class="num">5</span>Challenges and problems encountered</h2>
   <p class="sub">Each one changed the code. We set them out because they are the same ones anyone will meet who wants to reproduce
   or extend the work.</p>
   <ul class="tl">
@@ -352,7 +391,7 @@ turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge
 </div></section>
 
 <section class="cap" id="mejoras"><div class="wrap">
-  <h2><span class="num">7</span>What would improve accuracy, in order</h2>
+  <h2><span class="num">6</span>What would improve accuracy, in order</h2>
   <p class="sub">The model already ranks; what is missing is to <b>calibrate it against reality</b> and refine the two weakest layers: the
   actual presence of birds in rarely visited cells and the actual condition of each pylon.</p>
   <div class="tbl"><table>
@@ -402,7 +441,7 @@ turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge
 </div></section>
 
 <section class="cap" id="colaborar"><div class="wrap">
-  <h2><span class="num">8</span>What we ask for and what we offer</h2>
+  <h2><span class="num">7</span>What we ask for and what we offer</h2>
   <div class="grid g2">
     <div class="card"><h4>We ask for</h4><p>An institutional counterpart to request mortality records and pylon design data from
       public authorities and utilities; local groups for the field check of the top pylons in the ranking; agreements on the
@@ -424,11 +463,74 @@ turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge
   </div>
 </div></section>
 
-<footer><div class="wrap">
-  Data: © OpenStreetMap contributors (ODbL) · GBIF and eBird (under the licence of each dataset) · Movebank Data Repository (CC0) ·
+<section class="method" id="metodo">
+  <h2>How it is computed</h2>
+  <p>Everything happens on a grid of 0.005° cells (about 450 × 550 m). For each species <i>s</i>, month <i>m</i>
+  and cell, three indices are computed:</p>
+  <pre class="formula">electrocution[s,m] = P[s,m] · w_electro[s] · equivalent_pylons            (pylons ≤ 66 kV only)
+line_collision[s,m] = P[s,m] · w_col_lin[s] · km_of_line · (1 + terrain)
+turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge)</pre>
+  <ol class="steps">
+    <li><b>Download the infrastructure from OpenStreetMap</b><span>Lines classified by voltage: up to 66 kV is
+      distribution (electrocution risk, the scope of RD 1432/2008); above that, collision only. Pylons inherit the
+      voltage of their line. Where no pylons are mapped, 6 per km of distribution line are assumed.</span></li>
+    <li><b>Hazard rating of each pylon</b><span>A factor of 0.5-2 from the OSM tags: wood 0.5; pin insulator 1.5;
+      strain insulator 1.3; taps, sectioning points and line terminations 1.3; horizontal cross-arms 1.1; portal frames 1.3. With no tags,
+      1.0. Capped at 20 pylons per cell (more than that is a substation, not a power line).</span></li>
+    <li><b>Monthly presence P by species</b><span>Density of records of the species divided by the density of records of all
+      birds in the same month (this corrects for the fact that people observe more near roads and viewpoints). Adaptive Gaussian
+      smoothing: 1.5 km with 300 records or more in the month, wider with fewer. Records repeated at the same point, month and year
+      count as √n. Normalised to 0-1 per species.</span></li>
+    <li><b>GPS tracking where it exists</b><span>Individual-days per cell and month from the Movebank tracks,
+      blended into P with a weight that grows with the number of positions (up to 50% from 2,000 positions). Five fixes from a
+      passing bird do not move the map; 300,000 do.</span></li>
+    <li><b>Terrain</b><span>Slope (up to doubling the risk of collision with lines above 25°) and topographic position
+      index at 1.5 km (ridges and passes, where soaring birds cross low and where wind farms are built).</span></li>
+    <li><b>Aggregation and confidence</b><span>Each species adds to the total index with a weight of status × confidence, where confidence is
+      min(1, records/500) or grows with the GPS positions: a species with 120 records in the region (common crane in Cantabria) keeps
+      its own layer but does not dominate the ranking.</span></li>
+    <li><b>Scaling and ranking</b><span>Each index is rescaled so that the region's 99th percentile equals 100, without clipping
+      the maxima. Each pylon takes the electrocution index of its cell multiplied by its hazard rating; each segment, the
+      mean along its route; each wind turbine, that of its cell. The peak month and the three species contributing most
+      are stored.</span></li>
+    <li><b>Publish and repeat</b><span>Interactive map with layers by month, mechanism and species; report; CSV and GeoJSON of the
+      ranking; 12-band GeoTIFF for QGIS. An automated process recomputes everything on the 2nd of each month with the new records.</span></li>
+  </ol>
+<h3>Parameters</h3>
+<table class="params"><tbody><tr><th>Grid cell</th><td class="num">0.005°</td></tr><tr><th>Maximum distribution voltage</th><td class="num">66 kV</td></tr><tr><th>Pylons assumed where none are mapped</th><td class="num">6 per km</td></tr><tr><th>Pylon cap per cell</th><td class="num">20</td></tr><tr><th>Record smoothing (σ)</th><td class="num">1,500 m with ≥300 records in the month</td></tr><tr><th>GBIF records</th><td class="num">from 2010, up to 20,000 per species</td></tr><tr><th>Minimum records to include a species</th><td class="num">30</td></tr><tr><th>Full confidence</th><td class="num">500 records or 2,000 GPS fixes</td></tr><tr><th>Maximum GPS weight (Movebank)</th><td class="num">50%</td></tr><tr><th>eBird Status &amp; Trends weight</th><td class="num">70%</td></tr><tr><th>Slope at which line collision doubles</th><td class="num">25°</td></tr><tr><th>Topographic position radius</th><td class="num">1,500 m</td></tr><tr><th>Scale</th><td class="num">99th percentile = 100</td></tr></tbody></table>
+<h3>Validation</h3>
+<p>Pending. The ranking has not yet been checked against real mortality: there is no open dataset of
+ electrocuted or collided birds in Spain. The first planned check is against the Basque Government's shapefile of
+ hazardous power lines (region <code>euskadi</code>); once mortality points are available, the species weights will
+ be fitted with a logistic regression.</p>
+<h3>Limits</h3>
+<ul>
+ <li>The index is relative: 100 is the 99th percentile of the cells with infrastructure in the region, and values
+  above 100 are the top 1% and keep their order for the ranking. It is not a probability of mortality: it is meant
+  for prioritising, not for certifying.</li>
+ <li>OSM coverage is incomplete, especially for pylons and voltages.</li>
+ <li>The occurrence data carry observer bias (roads, viewpoints, hotspots) even after the effort correction, and
+  carry no flight height; only some GPS datasets do.</li>
+</ul>
+</section>
+
+<footer class="site-footer">
+  <p class="principle">Public data, rules in plain sight and every figure linked to its source. Leads, not verdicts.</p>
+  <p>Data: © OpenStreetMap contributors (ODbL) · GBIF and eBird (under the licence of each dataset) · Movebank Data Repository (CC0) ·
   AWS Terrain Tiles. The species weights come from Bevanger (1998), Janss (2000), Lehman et al. (2007), Marques et al. (2014) and
-  from RD 1432/2008. The index is a prioritisation tool, not a measure of mortality. Code released under the MIT licence.
-</div></footer>
+  from RD 1432/2008. The index is a prioritisation tool, not a measure of mortality. Code released under the MIT licence.</p>
+  <nav aria-label="Sibling projects"><ul class="siblings">
+    <li><a href="https://asensio94.github.io/observatorio-alegaciones/">Observatorio de alegaciones</a></li>
+    <li><a href="https://asensio94.github.io/vigia-incendios/">Vigía de incendios</a></li>
+    <li><a href="https://asensio94.github.io/centinela-natura/">Centinela Natura</a></li>
+    <li><a href="https://asensio94.github.io/vigilancia-humedales/">Vigilancia de humedales</a></li>
+    <li><a href="https://asensio94.github.io/sub-nocte/">Sub Nocte</a></li>
+    <li aria-current="page"><a href="https://asensio94.github.io/riesgo-tendidos-aves/">Riesgo de tendidos para aves</a></li>
+    <li><a href="https://asensio94.github.io/grafo-promotores/">Grafo de promotores</a></li>
+    <li><a href="https://asensio94.github.io/cartera-cotizadas/">Cartera de las cotizadas</a></li>
+    <li><a href="https://asensio94.github.io/cuaderno-campo/">Cuaderno de campo</a></li>
+  </ul></nav>
+</footer>
 
 </body>
 </html>

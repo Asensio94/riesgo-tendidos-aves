@@ -8,88 +8,29 @@ mapas de riesgo por especie y mes y un ranking de los elementos (apoyos, aerogen
 priorizar las correcciones. Pensado para que una eléctrica, una administración o una ONG pueda consultarlo
 y actualizarlo sin depender de un estudio puntual.
 
-## Estado
-
-Prototipo v0.1 (septiembre 2026). Funciona sin ninguna clave de API. Movebank es opcional.
-
 **Web:** <https://asensio94.github.io/riesgo-tendidos-aves/> (presentación del proyecto, método, retos y hoja de ruta) ·
-[mapas y rankings por región](https://asensio94.github.io/riesgo-tendidos-aves/regions.es.html). Se regenera el día 2 de cada mes
-con GitHub Actions. La presentación estática vive en `web/` y las miniaturas se generan con `tools/thumbnails.py`.
-Todo se publica en español e inglés: `index.html`/`index.en.html`, `regions.es.html`/`regions.en.html` y, por región,
-`report.<lang>.html` y `map.<lang>.html`. El español es la versión por defecto; las URL antiguas (`regiones.html`,
-`<region>/informe.html`, `<region>/mapa.html`) redirigen a ella. El código y los datos de salida están en inglés.
-La versión en inglés de este fichero es [README.md](README.md).
+[mapas y rankings por región](https://asensio94.github.io/riesgo-tendidos-aves/regions.es.html).
+Prototipo v0.1 (septiembre 2026). Funciona sin ninguna clave de API. Movebank es opcional.
+El código y los datos de salida están en inglés. La versión en inglés de este fichero es [README.md](README.md).
 
-## Uso
+## Cómo funciona
 
-```bash
-pip install -r requirements.txt
-python -m birdrisk.cli run --region estrecho
-```
+1. `osm.py`: Overpass (con espejos), clasificación de líneas por voltaje, voltaje heredado por los apoyos, rasterización.
+2. `terrain.py`: teselas terrarium → mosaico → pendiente y TPI → muestreo a la malla.
+3. `abundance.py`: citas GBIF descargadas por bloques anuales (de reciente a antiguo, hasta `GBIF_MAX_RECORDS` = 20.000 por
+   especie) con 3 hilos y reintentos pacientes: el paginado profundo de GBIF es lento y su API devuelve 503 en picos.
+   Esfuerzo por tesela de 0,05° y mes con facetas. Cada bloque se cachea para poder reanudar.
+4. `movebank.py`: repositorio DSpace (búsqueda, bitstreams, filtro por bbox en streaming; ficheros de hasta
+   `MOVEBANK_MAX_MB` = 150 MB), `public/json`, `direct-read`.
+5. `risk.py`: modelo, agregación, ranking de elementos, tabla estacional.
+6. `report.py`: folium (ImageOverlay por mes), informe HTML, GeoTIFF, GeoJSON.
+7. `ebirdst.py` (opcional): GeoTIFF semanales de eBird Status & Trends → meses → mezcla con GBIF.
+8. `score.py`: estadísticas del índice sobre polígonos de proyectos (integración con el observatorio de alegaciones).
+9. `site.py`: páginas de regiones `output/regions.<lang>.html`, redirecciones de las URL antiguas y copia de `web/` (la portada).
 
-Genera en `output/<region>/`:
+Todo se cachea en `data/cache/`.
 
-| Fichero | Contenido |
-|---|---|
-| `report.es.html` / `report.en.html` | informe con mapa embebido, tabla estacional por especie y top de elementos |
-| `map.es.html` / `map.en.html` | mapa interactivo (folium): capas mensuales, por mecanismo y por especie, infraestructura y ranking |
-| `ranking_elements.csv` / `.geojson` | todos los apoyos, aerogeneradores y tramos con índice máximo, medio, mes pico y especies |
-| `risk_total.tif`, `risk_electro.tif`, `risk_col_lin.tif`, `risk_col_aer.tif` | rásteres de 12 bandas (una por mes), EPSG:4326, para QGIS |
-| `terrain.tif` | elevación, pendiente y TPI |
-
-Opciones útiles:
-
-```bash
-python -m birdrisk.cli regions                       # regiones predefinidas (estrecho, tarifa, cantabria, monfrague, gallocanta)
-python -m birdrisk.cli run --region cantabria        # una región puede llevar su propia lista de especies (config.REGIONS[...]["species"])
-python -m birdrisk.cli species                       # especies y pesos
-python -m birdrisk.cli run --bbox 39.6,-6.3,40.0,-5.7 -s "Aegypius monachus" -s "Ciconia nigra"
-python -m birdrisk.cli run --region estrecho --movebank        # añade datasets publicados en Movebank (descargas de cientos de MB)
-python -m birdrisk.cli run --region estrecho --study-id 123456 # estudios Movebank concretos (públicos o con MOVEBANK_USER/MOVEBANK_PASSWORD)
-python -m birdrisk.cli index                                   # regenera output/regions.es.html y regions.en.html y copia web/ (lo hace también `run`)
-python -m birdrisk.cli score --region cantabria --observatory ../observatorio-alegaciones   # índice de riesgo de cada proyecto en información pública
-python -m birdrisk.cli score --region cantabria --geojson proyectos.geojson                  # o de cualquier polígono
-```
-
-`score` devuelve, por proyecto, el índice medio y máximo, el mes pico, el porcentaje de celdas con infraestructura y el
-máximo por mecanismo (`output/<region>/scored_projects.csv`). Con `--observatory` toma los anuncios geolocalizados del
-[observatorio de alegaciones](../observatorio-alegaciones) y reutiliza su caché de polígonos municipales.
-
-## Fuentes
-
-| Fuente | Uso | Acceso |
-|---|---|---|
-| OpenStreetMap vía Overpass | `power=line/minor_line` (voltaje, operador), `power=tower/pole`, `generator:source=wind` | público, sin clave |
-| GBIF occurrence API | citas por especie y mes; citas de todas las aves como esfuerzo de muestreo. Incluye el eBird Observation Dataset | público, sin clave |
-| AWS Terrain Tiles (terrarium) | elevación ~30 m → pendiente y posición topográfica | público, sin clave |
-| Movebank Data Repository | datasets GPS publicados (CC0/CC-BY), búsqueda por especie y descarga de CSV | público, sin clave |
-| Movebank API | estudios públicos (`public/json`) o con cuenta (`direct-read`) | opcional |
-
-**eBird Status & Trends** (abundancia semanal modelada a 3 km) es la mejor capa de abundancia, pero exige solicitar
-una clave y se distribuye vía R (`ebirdst`). Ya está integrado como opción: descarga los GeoTIFF
-`*_abundance_median_3km_*.tif` con `ebirdst_download_status(<código>, pattern = "abundance_median_3km")`, cópialos a
-`data/ebirdst/<Genus_species>/` y `birdrisk/ebirdst.py` los reproyecta a la malla, agrega las 52 semanas en meses y los
-mezcla con la frecuencia GBIF (70/30, `EBIRDST_WEIGHT`). La especie pasa a confianza 1. Sin ficheros, no cambia nada.
-
-### Datos de mortalidad para calibrar (pendiente)
-
-No hay un dataset abierto nacional de aves electrocutadas o colisionadas. Lo más aprovechable encontrado:
-
-- Gobierno Vasco, *Avifauna y tendidos eléctricos* (líneas con tramos asignados por peligrosidad, shapefile CC BY 4.0):
-  <https://www.geo.euskadi.eus/cartografia/DatosDescarga/Medio_Ambiente/Aves_y_Lineas_Electricas/KM_LINEAS_ASIGNADASAvesTendidos.zip>.
-  Sirve para validar el ranking en una región `euskadi`: comprobar si los tramos que la administración marcó como
-  peligrosos salen arriba en nuestro índice.
-- *Libro Blanco de la Electrocución* (Generalitat de Catalunya / Endesa, criterios de peligrosidad por tipo de apoyo):
-  <https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/patrimoni_natural/fauna_autoctona_protegida/Publicacions/llibre_blanc_electrocucio.pdf>.
-- RD 1432/2008 (medidas contra electrocución y colisión en líneas de alta tensión):
-  <https://www.boe.es/buscar/act.php?id=BOE-A-2008-14914>.
-- Programas de seguimiento de SEO/BirdLife y proyectos LIFE (Bonelli, AQUILA a-LIFE) publican cifras agregadas,
-  no puntos; habría que solicitarlos.
-
-Cuando haya puntos de mortalidad, el ajuste previsto es una regresión logística del suceso frente a los índices
-`electro`/`col_lin` de la celda y los pesos por especie, para reemplazar los pesos bibliográficos por pesos estimados.
-
-## Método
+### Método
 
 Para cada especie *s*, mes *m* y celda de ~0,5 km:
 
@@ -112,31 +53,87 @@ col_aer[s,m]  = P[s,m] · w_col_aer[s] · n_aerogen · (1 + cresta)
   (más que eso es una subestación). Cada apoyo pesa un **factor de peligrosidad 0,5-2** según sus etiquetas OSM
   (`material` madera 0,5; `line_attachment` pin 1,5 / anchor 1,3 / suspension 0,9; `line_management` derivación,
   seccionamiento, paso a subterráneo o fin de línea 1,3; crucetas horizontales 1,1; pórticos 1,3), con 1,0 si no hay
-  etiquetas. El factor escala también el puesto del apoyo en el ranking. En Cantabria unos 5 000 de 46 300 apoyos tienen alguna.
+  etiquetas. El factor escala también el puesto del apoyo en el ranking. En Cantabria unos 5.000 de 46.300 apoyos tienen alguna.
 - **relieve** = pendiente/25° (acotado a 1); **cresta** = TPI positivo normalizado (radio 1,5 km).
 - Los pesos por especie y el peso de conservación están en `birdrisk/config.py` (síntesis de Bevanger 1998, Janss 2000,
   Lehman et al. 2007, Marques et al. 2014 y el listado del RD 1432/2008). Son un punto de partida ajustable.
 - Cada índice se reescala a 0-100 (percentil 99 de la región). El agregado suma especies ponderadas por estatus.
 - El ranking de elementos toma el índice de la celda de cada apoyo/aerogenerador y la media a lo largo de cada tramo.
 
-## Pipeline
+## Contraste
 
-1. `osm.py`: Overpass (con espejos), clasificación de líneas por voltaje, voltaje heredado por los apoyos, rasterización.
-2. `terrain.py`: teselas terrarium → mosaico → pendiente y TPI → muestreo a la malla.
-3. `abundance.py`: citas GBIF descargadas por bloques anuales (de reciente a antiguo, hasta `GBIF_MAX_RECORDS` = 20 000 por
-   especie) con 3 hilos y reintentos pacientes: el paginado profundo de GBIF es lento y su API devuelve 503 en picos.
-   Esfuerzo por tesela de 0,05° y mes con facetas. Cada bloque se cachea para poder reanudar.
-4. `movebank.py`: repositorio DSpace (búsqueda, bitstreams, filtro por bbox en streaming; ficheros de hasta
-   `MOVEBANK_MAX_MB` = 150 MB), `public/json`, `direct-read`.
-5. `risk.py`: modelo, agregación, ranking de elementos, tabla estacional.
-6. `report.py`: folium (ImageOverlay por mes), informe HTML, GeoTIFF, GeoJSON.
-7. `ebirdst.py` (opcional): GeoTIFF semanales de eBird Status & Trends → meses → mezcla con GBIF.
-8. `score.py`: estadísticas del índice sobre polígonos de proyectos (integración con el observatorio de alegaciones).
-9. `site.py`: portada `output/index.html`.
+Pendiente. El ranking aún no se ha contrastado con mortalidad real.
 
-Todo se cachea en `data/cache/`.
+### Datos de mortalidad para calibrar (pendiente)
 
-## Servicio web
+No hay un dataset abierto nacional de aves electrocutadas o colisionadas. Lo más aprovechable encontrado:
+
+- Gobierno Vasco, *Avifauna y tendidos eléctricos* (líneas con tramos asignados por peligrosidad, shapefile CC BY 4.0):
+  <https://www.geo.euskadi.eus/cartografia/DatosDescarga/Medio_Ambiente/Aves_y_Lineas_Electricas/KM_LINEAS_ASIGNADASAvesTendidos.zip>.
+  Sirve para validar el ranking en una región `euskadi`: comprobar si los tramos que la administración marcó como
+  peligrosos salen arriba en nuestro índice.
+- *Libro Blanco de la Electrocución* (Generalitat de Catalunya / Endesa, criterios de peligrosidad por tipo de apoyo):
+  <https://mediambient.gencat.cat/web/.content/home/ambits_dactuacio/patrimoni_natural/fauna_autoctona_protegida/Publicacions/llibre_blanc_electrocucio.pdf>.
+- RD 1432/2008 (medidas contra electrocución y colisión en líneas de alta tensión):
+  <https://www.boe.es/buscar/act.php?id=BOE-A-2008-14914>.
+- Programas de seguimiento de SEO/BirdLife y proyectos LIFE (Bonelli, AQUILA a-LIFE) publican cifras agregadas,
+  no puntos; habría que solicitarlos.
+
+Cuando haya puntos de mortalidad, el ajuste previsto es una regresión logística del suceso frente a los índices
+`electro`/`col_lin` de la celda y los pesos por especie, para reemplazar los pesos bibliográficos por pesos estimados.
+
+## Límites
+
+- La cobertura de OSM de apoyos y voltajes es desigual; por eso se estima el número de apoyos donde no están mapeados.
+- Las citas tienen sesgo de observador (carreteras, miradores, hotspots). La corrección por esfuerzo lo atenúa, no lo elimina.
+- No hay altura de vuelo en los datos de citas; solo en algunos datasets GPS.
+- El índice es relativo a la región analizada, no una probabilidad de mortalidad. Sirve para priorizar, no para certificar.
+
+## Pendiente
+
+- Conseguir la clave de eBird Status & Trends y cargar los GeoTIFF de las especies del catálogo (el cargador ya existe).
+- Validar el ranking con el shapefile de tendidos peligrosos del Gobierno Vasco (región `euskadi`) y, cuando haya puntos de
+  mortalidad, calibrar los pesos por especie.
+- Peligrosidad del apoyo con datos de las eléctricas (catastros de armados y aisladores); OSM solo cubre ~11 % de los apoyos.
+- Servicio web: región a demanda, descarga por operador y avisos cuando un elemento suba de índice entre meses.
+- En el observatorio de alegaciones, mostrar el índice de `score` junto a cada anuncio de eólica o red eléctrica.
+
+## Uso
+
+```bash
+pip install -r requirements.txt
+python -m birdrisk.cli run --region estrecho
+```
+
+Opciones útiles:
+
+```bash
+python -m birdrisk.cli regions                       # regiones predefinidas (estrecho, tarifa, cantabria, monfrague, gallocanta)
+python -m birdrisk.cli run --region cantabria        # una región puede llevar su propia lista de especies (config.REGIONS[...]["species"])
+python -m birdrisk.cli species                       # especies y pesos
+python -m birdrisk.cli run --bbox 39.6,-6.3,40.0,-5.7 -s "Aegypius monachus" -s "Ciconia nigra"
+python -m birdrisk.cli run --region estrecho --movebank        # añade datasets publicados en Movebank (descargas de cientos de MB)
+python -m birdrisk.cli run --region estrecho --study-id 123456 # estudios Movebank concretos (públicos o con MOVEBANK_USER/MOVEBANK_PASSWORD)
+python -m birdrisk.cli index                                   # regenera output/regions.es.html y regions.en.html y copia web/ (lo hace también `run`)
+python -m birdrisk.cli score --region cantabria --observatory ../observatorio-alegaciones   # índice de riesgo de cada proyecto en información pública
+python -m birdrisk.cli score --region cantabria --geojson proyectos.geojson                  # o de cualquier polígono
+```
+
+`score` devuelve, por proyecto, el índice medio y máximo, el mes pico, el porcentaje de celdas con infraestructura y el
+máximo por mecanismo (`output/<region>/scored_projects.csv`). Con `--observatory` toma los anuncios geolocalizados del
+[observatorio de alegaciones](../observatorio-alegaciones) y reutiliza su caché de polígonos municipales.
+
+### Web
+
+Se regenera el día 2 de cada mes con GitHub Actions. La presentación estática vive en `web/` y las miniaturas se generan
+con `tools/thumbnails.py`. Todo se publica en español e inglés: `index.html`/`index.en.html`,
+`regions.es.html`/`regions.en.html` y, por región, `report.<lang>.html` y `map.<lang>.html`. El español es la versión por
+defecto; las URL antiguas (`regiones.html`, `<region>/informe.html`, `<region>/mapa.html`) redirigen a ella.
+
+Las páginas comparten aspecto con los proyectos hermanos: `birdrisk/common.css` es la hoja de estilo común, copiada tal
+cual de la guía de estilo compartida (no se edita aquí). `site.py` y `report.py` la incrustan en cada página generada;
+`web/index.html` y `web/index.en.html` llevan la misma copia incrustada. Este proyecto solo fija su color de acento
+(`#8a5a00` / `#e3a93c`).
 
 `output/` es publicable tal cual (HTML estático + GeoTIFF/CSV) y se sirve en <https://asensio94.github.io/riesgo-tendidos-aves/>.
 
@@ -154,23 +151,52 @@ rama intermedia.
   normal solo vuelve a bajar lo que ha cambiado.
 - **Movebank queda fuera del flujo de trabajo**: son descargas de cientos de MB con cortes frecuentes, que no encajan en
   un runner. Los resultados que incorporan GPS solo existen si se calculan en local. En el Estrecho Movebank aporta
-  ~300 000 posiciones de milano negro y ~65 000 de cigüeña blanca; en Cantabria los datasets publicados no llegan
+  ~300.000 posiciones de milano negro y ~65.000 de cigüeña blanca; en Cantabria los datasets publicados no llegan
   (5 posiciones de abejero), así que allí el mapa se apoya solo en citas.
 - `tools/publish.sh` empaqueta `output/` y lo sube a la rama `gh-pages`. Solo sirve si se devuelve Pages al modo
   clásico; con el modo Actions activo la rama `gh-pages` se ignora.
 
-## Limitaciones
+## Datos que se guardan
 
-- La cobertura de OSM de apoyos y voltajes es desigual; por eso se estima el número de apoyos donde no están mapeados.
-- Las citas tienen sesgo de observador (carreteras, miradores, hotspots). La corrección por esfuerzo lo atenúa, no lo elimina.
-- No hay altura de vuelo en los datos de citas; solo en algunos datasets GPS.
-- El índice es relativo a la región analizada, no una probabilidad de mortalidad. Sirve para priorizar, no para certificar.
+`run` genera en `output/<region>/`:
 
-## Próximos pasos
+| Fichero | Contenido |
+|---|---|
+| `report.es.html` / `report.en.html` | informe con mapa embebido, tabla estacional por especie y top de elementos |
+| `map.es.html` / `map.en.html` | mapa interactivo (folium): capas mensuales, por mecanismo y por especie, infraestructura y ranking |
+| `ranking_elements.csv` / `.geojson` | todos los apoyos, aerogeneradores y tramos con índice máximo, medio, mes pico y especies |
+| `risk_total.tif`, `risk_electro.tif`, `risk_col_lin.tif`, `risk_col_aer.tif` | rásteres de 12 bandas (una por mes), EPSG:4326, para QGIS |
+| `terrain.tif` | elevación, pendiente y TPI |
+| `scored_projects.csv` | lo escribe `score`: estadísticas del índice por polígono de proyecto |
 
-- Conseguir la clave de eBird Status & Trends y cargar los GeoTIFF de las especies del catálogo (el cargador ya existe).
-- Validar el ranking con el shapefile de tendidos peligrosos del Gobierno Vasco (región `euskadi`) y, cuando haya puntos de
-  mortalidad, calibrar los pesos por especie.
-- Peligrosidad del apoyo con datos de las eléctricas (catastros de armados y aisladores); OSM solo cubre ~11 % de los apoyos.
-- Servicio web: región a demanda, descarga por operador y avisos cuando un elemento suba de índice entre meses.
-- En el observatorio de alegaciones, mostrar el índice de `score` junto a cada anuncio de eólica o red eléctrica.
+`index` escribe `output/regions.es.html` y `output/regions.en.html` y copia `web/` en `output/`. Las descargas se cachean
+en `data/cache/` (GBIF, OSM, terreno, Movebank). Ni `output/` ni `data/cache/` se suben al repositorio.
+
+## Fuentes y licencias
+
+| Fuente | Uso | Acceso |
+|---|---|---|
+| OpenStreetMap vía Overpass | `power=line/minor_line` (voltaje, operador), `power=tower/pole`, `generator:source=wind` | público, sin clave |
+| GBIF occurrence API | citas por especie y mes; citas de todas las aves como esfuerzo de muestreo. Incluye el eBird Observation Dataset | público, sin clave |
+| AWS Terrain Tiles (terrarium) | elevación ~30 m → pendiente y posición topográfica | público, sin clave |
+| Movebank Data Repository | datasets GPS publicados (CC0/CC-BY), búsqueda por especie y descarga de CSV | público, sin clave |
+| Movebank API | estudios públicos (`public/json`) o con cuenta (`direct-read`) | opcional |
+
+**eBird Status & Trends** (abundancia semanal modelada a 3 km) es la mejor capa de abundancia, pero exige solicitar
+una clave y se distribuye vía R (`ebirdst`). Ya está integrado como opción: descarga los GeoTIFF
+`*_abundance_median_3km_*.tif` con `ebirdst_download_status(<código>, pattern = "abundance_median_3km")`, cópialos a
+`data/ebirdst/<Genus_species>/` y `birdrisk/ebirdst.py` los reproyecta a la malla, agrega las 52 semanas en meses y los
+mezcla con la frecuencia GBIF (70/30, `EBIRDST_WEIGHT`). La especie pasa a confianza 1. Sin ficheros, no cambia nada.
+
+Licencias de los datos: OpenStreetMap © sus colaboradores (ODbL); GBIF y eBird según la licencia de cada dataset
+(CC0 / CC BY / CC BY-NC); Movebank Data Repository CC0/CC BY. El código se publica con licencia MIT ([LICENSE](LICENSE)).
+
+Forma parte de un conjunto de proyectos hermanos:
+[Observatorio de alegaciones](https://asensio94.github.io/observatorio-alegaciones/) ·
+[Vigía de incendios](https://asensio94.github.io/vigia-incendios/) ·
+[Centinela Natura](https://asensio94.github.io/centinela-natura/) ·
+[Vigilancia de humedales](https://asensio94.github.io/vigilancia-humedales/) ·
+[Sub Nocte](https://asensio94.github.io/sub-nocte/) ·
+[Grafo de promotores](https://asensio94.github.io/grafo-promotores/) ·
+[Cartera de las cotizadas](https://asensio94.github.io/cartera-cotizadas/) ·
+[Cuaderno de campo](https://asensio94.github.io/cuaderno-campo/).
