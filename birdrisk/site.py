@@ -15,9 +15,11 @@ from pathlib import Path
 import pandas as pd
 
 from . import config, i18n
+from .logo import LOGO_SVG, favicon_link
 
 # Shared stylesheet of the sibling projects: copied verbatim, never edited here; inlined before each page's own CSS.
 COMMON_CSS = Path(__file__).with_name("common.css").read_text(encoding="utf-8").strip()
+FAVICON = favicon_link("#8a5a00", "#e3a93c")
 ACCENT_CSS = ":root{--accent:#8a5a00;--accent-dark:#e3a93c}"
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
@@ -48,6 +50,7 @@ def page_head(lang, title, own_css):
     return f"""<!doctype html><html lang="{i18n.t(lang, 'html_lang')}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{escape(title)}</title>
+{FAVICON}
 {FONTS}
 <style>
 {COMMON_CSS}
@@ -159,7 +162,7 @@ def _regions_page(out, lang):
 <header class="site-header">
  <p class="lang"><span class="on">{i18n.t(lang, "lang_name")}</span>
   <a href="regions.{other}.html" hreflang="{other}">{i18n.t(lang, "other_lang_name")}</a></p>
- <h1>{i18n.t(lang, 'h1_html')}</h1>
+ <h1>{LOGO_SVG}{i18n.t(lang, 'h1_html')}</h1>
  <p class="lede">{escape(i18n.t(lang, 'regions_intro'))}</p>
  <p class="links"><a href="{home}">{escape(i18n.t(lang, 'regions_project_link'))}</a> ·
   <a href="{config.REPO_URL}">{escape(i18n.t(lang, 'regions_code_link'))}</a></p>
