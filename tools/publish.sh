@@ -10,11 +10,11 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 cd "$ROOT"
-# `index` rebuilds regions.es/en.html, the legacy redirects and the copy of web/ inside output/
+# `index` rebuilds regions.es/en.html, the legacy redirects, the copy of web/ and signals.json inside output/
 .venv/Scripts/python.exe -m birdrisk.cli index >/dev/null 2>&1 || python -m birdrisk.cli index >/dev/null
 cd output
-# front pages, redirects and images
-for f in index.html index.en.html regions.es.html regions.en.html regiones.html; do
+# front pages, redirects, images and the signals for Estado de las IBA
+for f in index.html index.en.html regions.es.html regions.en.html regiones.html signals.json; do
   [ -f "$f" ] && cp "$f" "$TMP/"
 done
 [ -d img ] && cp -r img "$TMP/"

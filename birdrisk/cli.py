@@ -4,9 +4,10 @@ from typing import Optional
 import numpy as np
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
-from . import abundance, config, ebirdst, movebank, osm, report, risk, score as score_mod, site, terrain
+from . import abundance, config, ebirdst, movebank, osm, report, risk, score as score_mod, signals, site, terrain
 from .grid import Grid
 
 app = typer.Typer(add_completion=False, help="Dynamic collision and electrocution risk map for birds.")
@@ -155,8 +156,13 @@ def run(
 
 @app.command()
 def index():
-    """Rebuild output/regions.<lang>.html with links to every computed region (the web service front page)."""
+    """Rebuild output/regions.<lang>.html with links to every computed region (the web service front page)
+    and output/signals.json, the high-risk counts per Natura 2000 site for Estado de las IBA."""
     log(f"[green]Front page:[/] {site.index(config.OUTPUT_DIR)}")
+    try:
+        log(f"[green]Signals:[/] {signals.write(config.OUTPUT_DIR)}")
+    except Exception as e:  # noqa: BLE001 - without the file the hub reads the rankings itself; publish the rest
+        log(f"[yellow]signals.json skipped: {escape(str(e))}[/]")
 
 
 @app.command()

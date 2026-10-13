@@ -121,6 +121,12 @@ MOVEBANK_RISK_HEIGHT_M = 150
 MOVEBANK_WEIGHT = 0.5
 MOVEBANK_N_REF = 2000
 
+# ---------------------------------------------------------------- Estado de las IBA (output/signals.json)
+# Every Natura 2000 site of Spain, simplified to ~300 m, as published by the sibling project Vigía de incendios
+NATURA_URL = "https://asensio94.github.io/vigia-incendios/natura.geojson"
+# Share of each region's elements, by risk_max, that the signals count as high risk
+HIGH_RISK_SHARE = 0.1
+
 # ---------------------------------------------------------------- Species
 # Weights 0-1 per mechanism (synthesis of Bevanger 1998, Janss 2000, Lehman et al. 2007, Martin & Shaw 2010,
 # Marques et al. 2014 and the species lists of Spanish Royal Decree 1432/2008). User-adjustable.
