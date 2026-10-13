@@ -39,6 +39,7 @@ SIBLINGS = [
     ("cartera-cotizadas", "Cartera de las cotizadas"),
     ("cuaderno-campo", "Cuaderno de campo"),
     ("caudal-ecologico", "Caudal ecológico"),
+    ("estado-iba", "Estado de las IBA"),
 ]
 
 REDIRECT = """<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
