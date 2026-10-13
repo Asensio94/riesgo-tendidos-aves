@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+from collections import Counter
 from datetime import datetime, timezone
 
 import pytest
@@ -19,9 +20,9 @@ NATURA = {"type": "FeatureCollection", "features": [
                           ("ES3", "ZEC y ZEPA", box(10, 10, 11, 11)), ("ES9", "ZEPA", box(50, 50, 51, 51))]]}
 
 
-def _row(lon, lat, risk, n):
+def _row(lon, lat, risk, n, type="pylon"):
     osm_id = 9_000_000_000 + n  # long enough not to turn up in the output by chance
-    return {"type": "pylon", "osm_id": str(osm_id), "osm_url": f"https://www.openstreetmap.org/node/{osm_id}",
+    return {"type": type, "osm_id": str(osm_id), "osm_url": f"https://www.openstreetmap.org/node/{osm_id}",
             "lon": str(lon), "lat": str(lat), "risk_max": str(risk), "species": "Gyps fulvus"}
 
 
@@ -30,7 +31,7 @@ def _row(lon, lat, risk, n):
 # swallow Cantabria's if the cut were not taken per region.
 CANTABRIA = ([_row(0.75, 0.5, 9, 9001), _row(0.25, 0.5, 8, 8001)] + [_row(3, 3, i, 100 + i) for i in range(8)]
              + [_row(0.4, 0.6, "", 7001)])
-ESTRECHO = [_row(10.25, 10.75, 118, 1180), _row(10.75, 10.25, 119, 1190)] + [_row(12, 12, 100 + i, 200 + i)
+ESTRECHO = [_row(10.25, 10.75, 118, 1180), _row(10.75, 10.25, 119, 1190, "turbine")] + [_row(12, 12, 100 + i, 200 + i)
                                                                           for i in range(18)]
 
 
@@ -46,11 +47,17 @@ def test_counts_the_top_tenth_of_each_region_inside_each_site():
     assert [s["id"] for s in doc["signals"]] == ["cantabria-ES1", "cantabria-ES2", "estrecho-ES3"]  # date, then id
     s = doc["signals"][-1]
     assert s == {"id": "estrecho-ES3", "kind": "power_line", "date": "2026-10-02",
-                 "title": "2 apoyos y vanos de riesgo alto para las aves dentro del espacio",
+                 "title": "1 aerogenerador y 1 apoyo de riesgo alto para las aves dentro del espacio",
                  "url": "https://asensio94.github.io/riesgo-tendidos-aves/estrecho/map.es.html",
                  "sites": [{"code": "ES3"}], "municipalities": [], "precision": "punto", "deadline": None,
                  "status": None, "value": {"amount": 2, "unit": "elementos"},
                  "details": {"region": "estrecho", "point": s["details"]["point"]}}
+
+
+def test_titles_name_wind_turbines_first():
+    assert S.elements(Counter(pylon=40, line=2, turbine=3)) == "3 aerogeneradores, 40 apoyos y 2 tramos de línea"
+    assert S.elements(Counter(line=1)) == "1 tramo de línea"
+    assert S.elements(Counter(pylon=2, substation=1)) == "2 apoyos y 1 otro elemento"
 
 
 def test_coverage_is_every_site_around_the_modelled_elements():
@@ -59,7 +66,7 @@ def test_coverage_is_every_site_around_the_modelled_elements():
         "source": "riesgo-tendidos-aves", "version": 1, "generated": "2026-10-13T07:02Z"}
     assert doc["coverage"] == {
         "label": "Cantabria y el Estrecho", "sites": ["ES1", "ES2", "ES3"],  # ES9 lies outside both regions
-        "note": "Riesgo de electrocución y colisión de cada apoyo y vano de OpenStreetMap, modelado cada mes."}
+        "note": S.NOTE}
 
 
 def test_coverage_label_names_the_regions_in_spanish():

@@ -7,6 +7,7 @@ pylon, span or turbine stands, its OSM id and its species stay in the region's o
 """
 import csv
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,7 +21,11 @@ SOURCE = "riesgo-tendidos-aves"
 # How the coverage label names each region, in Spanish ("Cantabria y el Estrecho")
 SHORT_NAMES = {"estrecho": "el Estrecho", "tarifa": "Tarifa y La Janda", "cantabria": "Cantabria",
                "monfrague": "Monfragüe", "gallocanta": "Gallocanta"}
-NOTE = "Riesgo de electrocución y colisión de cada apoyo y vano de OpenStreetMap, modelado cada mes."
+NOTE = ("Riesgo de colisión y electrocución de cada aerogenerador, apoyo y tramo de línea de OpenStreetMap, "
+        "modelado cada mes.")
+# How a title names each element type of the ranking, wind turbines first: they are the main point.
+ELEMENTS = (("turbine", "aerogenerador", "aerogeneradores"), ("pylon", "apoyo", "apoyos"),
+            ("line", "tramo de línea", "tramos de línea"))
 
 
 def polygonal(geometry):
@@ -41,6 +46,15 @@ def site_shapes(natura):
     return {f["properties"]["codigo"]: polygonal(f["geometry"]) for f in natura["features"]}
 
 
+def elements(count):
+    """A count by element type in one Spanish phrase, wind turbines first: "3 aerogeneradores, 40 apoyos y 1 tramo
+    de línea". A type the ranking does not write today still counts, as "otros elementos"."""
+    known = [(count.get(t, 0), one, many) for t, one, many in ELEMENTS]
+    known.append((sum(count.values()) - sum(n for n, _, _ in known), "otro elemento", "otros elementos"))
+    parts = [f"{n} {one if n == 1 else many}" for n, one, many in known if n]
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " y " + parts[-1]
+
+
 def coverage_label(regions):
     """The modelled regions in one Spanish phrase, in key order: "Cantabria y el Estrecho"."""
     names = [SHORT_NAMES.get(k, config.region_name(k, "es")) for k in sorted(regions)]
@@ -51,7 +65,7 @@ def coverage_label(regions):
 def build(regions, shapes, generated, share=config.HIGH_RISK_SHARE):
     """The signals.json document from {region: (ranking rows, date)} and {SITECODE: shape}.
 
-    Every site holding high-risk elements of a region gets one signal with their count, drawn at a point inside the
+    Every site holding high-risk elements of a region gets one signal with their count by type, drawn at a point inside the
     site and never at an element. The coverage is every site that touches the bounding box of a region's elements.
     """
     codes = list(shapes)
@@ -69,12 +83,13 @@ def build(regions, shapes, generated, share=config.HIGH_RISK_SHARE):
         for r in rows:
             if float(r["risk_max"]) >= cut:
                 for i in tree.query(Point(float(r["lon"]), float(r["lat"])), predicate="intersects"):
-                    count[codes[i]] = count.get(codes[i], 0) + 1
-        for code, n in count.items():
+                    count.setdefault(codes[i], Counter())[r.get("type")] += 1
+        for code, kinds in count.items():
+            n = sum(kinds.values())
             p = shapes[code].representative_point()  # the count belongs to the site, not to any one pylon
             signals.append({
                 "id": f"{region}-{code}", "kind": "power_line", "date": day,
-                "title": f"{n} apoyos y vanos de riesgo alto para las aves dentro del espacio",
+                "title": f"{elements(kinds)} de riesgo alto para las aves dentro del espacio",
                 "url": f"{config.WEB_URL}{region}/map.es.html", "sites": [{"code": code}], "municipalities": [],
                 "precision": "punto", "deadline": None, "status": None, "value": {"amount": n, "unit": "elementos"},
                 "details": {"region": region, "point": [round(p.x, 4), round(p.y, 4)]}})
