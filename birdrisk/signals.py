@@ -15,7 +15,7 @@ import requests
 from shapely import STRtree, box, make_valid, unary_union
 from shapely.geometry import Point, shape
 
-from . import config
+from . import config, site_pages
 
 SOURCE = "riesgo-tendidos-aves"
 # How the coverage label names each region, in Spanish ("Cantabria y el Estrecho")
@@ -62,37 +62,51 @@ def coverage_label(regions):
     return label[:1].upper() + label[1:]
 
 
-def build(regions, shapes, generated, share=config.HIGH_RISK_SHARE):
-    """The signals.json document from {region: (ranking rows, date)} and {SITECODE: shape}.
+def high_risk_inside(regions, shapes, share=config.HIGH_RISK_SHARE):
+    """The sites each region's elements could reach and its high-risk elements inside each site.
 
-    Every site holding high-risk elements of a region gets one signal with their count by type, drawn at a point inside the
-    site and never at an element. The coverage is every site that touches the bounding box of a region's elements.
+    High risk is the top `share` of risk_max within the region. Returns (watched site codes, {(region, code): rows});
+    the watched sites are every site that touches the bounding box of a region's scored elements.
     """
     codes = list(shapes)
     tree = STRtree([shapes[c] for c in codes])
-    watched, signals = set(), []
-    for region, (rows, day) in sorted(regions.items()):
+    watched, inside = set(), {}
+    for region, (rows, _day) in sorted(regions.items()):
         rows = [r for r in rows if r.get("risk_max") not in (None, "")]
         if not rows:
             continue
         lons, lats = [float(r["lon"]) for r in rows], [float(r["lat"]) for r in rows]
-        bounds = box(min(lons), min(lats), max(lons), max(lats))
-        watched |= {codes[i] for i in tree.query(bounds, predicate="intersects")}
+        watched |= {codes[i] for i in tree.query(box(min(lons), min(lats), max(lons), max(lats)), predicate="intersects")}
         cut = sorted(float(r["risk_max"]) for r in rows)[int(len(rows) * (1 - share))]
-        count = {}
         for r in rows:
             if float(r["risk_max"]) >= cut:
                 for i in tree.query(Point(float(r["lon"]), float(r["lat"])), predicate="intersects"):
-                    count.setdefault(codes[i], Counter())[r.get("type")] += 1
-        for code, kinds in count.items():
-            n = sum(kinds.values())
-            p = shapes[code].representative_point()  # the count belongs to the site, not to any one pylon
-            signals.append({
-                "id": f"{region}-{code}", "kind": "power_line", "date": day,
-                "title": f"{elements(kinds)} de riesgo alto para las aves dentro del espacio",
-                "url": f"{config.WEB_URL}{region}/map.es.html", "sites": [{"code": code}], "municipalities": [],
-                "precision": "punto", "deadline": None, "status": None, "value": {"amount": n, "unit": "elementos"},
-                "details": {"region": region, "point": [round(p.x, 4), round(p.y, 4)]}})
+                    inside.setdefault((region, codes[i]), []).append(r)
+    return watched, inside
+
+
+def site_page(region, code, lang="es"):
+    """Path, under the web root, of the page listing one site's high-risk elements (see `site_pages`)."""
+    return f"{region}/sites/{code}.{lang}.html"
+
+
+def build(regions, shapes, generated, share=config.HIGH_RISK_SHARE):
+    """The signals.json document from {region: (ranking rows, date)} and {SITECODE: shape}.
+
+    Every site holding high-risk elements of a region gets one signal with their count by type, drawn at a point inside the
+    site and never at an element. Its link is the site's own page, which shows exactly those elements.
+    """
+    watched, inside = high_risk_inside(regions, shapes, share)
+    signals = []
+    for (region, code), rows in inside.items():
+        kinds = Counter(r.get("type") for r in rows)
+        p = shapes[code].representative_point()  # the count belongs to the site, not to any one pylon
+        signals.append({
+            "id": f"{region}-{code}", "kind": "power_line", "date": regions[region][1],
+            "title": f"{elements(kinds)} de riesgo alto para las aves dentro del espacio",
+            "url": config.WEB_URL + site_page(region, code), "sites": [{"code": code}], "municipalities": [],
+            "precision": "punto", "deadline": None, "status": None, "value": {"amount": len(rows), "unit": "elementos"},
+            "details": {"region": region, "point": [round(p.x, 4), round(p.y, 4)]}})
     return {"source": SOURCE, "version": 1, "generated": generated.strftime("%Y-%m-%dT%H:%MZ"),
             "coverage": {"label": coverage_label(regions), "sites": sorted(watched), "note": NOTE},
             "signals": sorted(signals, key=lambda s: (s["date"], s["id"]))}
@@ -114,7 +128,8 @@ def download_natura():
 
 
 def write(output_dir=None, natura=None, now=None):
-    """Write `signals.json` at the root of the output folder from every computed region and return its path.
+    """Write `signals.json` at the root of the output folder from every computed region, and the page of each site
+    it links to, and return its path.
 
     The file of an earlier run is removed first, so that a failure (no region, Natura layer unavailable) leaves no
     stale signals behind: without the file, Estado de las IBA reads the published rankings itself.
@@ -126,6 +141,9 @@ def write(output_dir=None, natura=None, now=None):
                if (out / k / "ranking_elements.csv").exists() and (out / k / "map.es.html").exists()}
     if not regions:
         raise FileNotFoundError(f"no computed region in {out}")
-    doc = build(regions, site_shapes(natura or download_natura()), now or datetime.now(timezone.utc))
+    natura = natura or download_natura()
+    shapes = site_shapes(natura)
+    doc = build(regions, shapes, now or datetime.now(timezone.utc))
     path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    site_pages.write(out, high_risk_inside(regions, shapes)[1], natura, regions, site_page)
     return path

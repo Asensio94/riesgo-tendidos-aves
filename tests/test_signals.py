@@ -48,7 +48,7 @@ def test_counts_the_top_tenth_of_each_region_inside_each_site():
     s = doc["signals"][-1]
     assert s == {"id": "estrecho-ES3", "kind": "power_line", "date": "2026-10-02",
                  "title": "1 aerogenerador y 1 apoyo de riesgo alto para las aves dentro del espacio",
-                 "url": "https://asensio94.github.io/riesgo-tendidos-aves/estrecho/map.es.html",
+                 "url": "https://asensio94.github.io/riesgo-tendidos-aves/estrecho/sites/ES3.es.html",
                  "sites": [{"code": "ES3"}], "municipalities": [], "precision": "punto", "deadline": None,
                  "status": None, "value": {"amount": 2, "unit": "elementos"},
                  "details": {"region": "estrecho", "point": s["details"]["point"]}}
@@ -123,6 +123,26 @@ def test_write_reads_every_computed_region_dated_by_its_output(tmp_path):
     doc = json.loads(path.read_bytes().decode("utf-8"))
     assert doc == {**_doc(), "signals": [{**s, "date": "2026-10-02"} for s in _doc()["signals"]]}
     assert "electrocución" in path.read_text(encoding="utf-8")  # UTF-8, not \u escapes
+
+
+def test_each_signal_links_to_a_page_with_exactly_its_elements(tmp_path):
+    _region(tmp_path, "cantabria", CANTABRIA)
+    _region(tmp_path, "estrecho", ESTRECHO)
+    stale = tmp_path / "cantabria" / "sites" / "ES9.es.html"
+    stale.parent.mkdir()
+    stale.write_text("", encoding="utf-8")
+    doc = json.loads(S.write(tmp_path, natura=NATURA, now=NOW).read_bytes().decode("utf-8"))
+    for s in doc["signals"]:
+        rel = s["url"].removeprefix(config.WEB_URL)
+        for lang in ("es", "en"):
+            assert (tmp_path / rel.replace(".es.html", f".{lang}.html")).exists()
+    es1 = (tmp_path / "cantabria" / "sites" / "ES1.es.html").read_text(encoding="utf-8")
+    assert "9000009001" in es1 and "9000008001" not in es1  # the 9 is high risk, the 8 is not
+    assert "Buitre leonado" in es1 or "Gyps fulvus" in es1
+    estrecho = (tmp_path / "estrecho" / "sites" / "ES3.en.html").read_text(encoding="utf-8")
+    assert "9000001180" in estrecho and "9000001190" in estrecho and "estado-iba/#/e/ES3" in estrecho
+    assert "estado-iba/#/e/ES2" not in (tmp_path / "cantabria" / "sites" / "ES2.es.html").read_text(encoding="utf-8")  # a ZEC
+    assert not stale.exists()
 
 
 def test_write_leaves_no_stale_file_when_the_natura_layer_is_unavailable(tmp_path, monkeypatch):
