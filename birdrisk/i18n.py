@@ -110,6 +110,17 @@ UI = {
         "ranking_files": "Ranking completo en <code>ranking_elements.csv</code> y "
                          "<code>ranking_elements.geojson</code>; rásteres mensuales en <code>risk_total.tif</code>.",
         "back_to_regions": "Todas las regiones",
+        # ---- one page per Natura 2000 site
+        "site_page_title": "{site} · elementos de riesgo alto para las aves",
+        "site_lede": "{n} elementos de riesgo alto para las aves dentro de {site} ({kind} {code}).",
+        "site_rule": "Riesgo alto: el {share} % de los elementos de {region} con mayor índice máximo. Es el mismo "
+                     "recuento que publica Estado de las IBA; un elemento dentro de dos espacios cuenta en los dos.",
+        "site_full_map": "Mapa completo de {region}",
+        "site_report": "Informe de {region}",
+        "site_hub": "Este espacio en Estado de las IBA",
+        "site_map_label": "Mapa de los elementos de riesgo alto en {site}",
+        "site_h2_list": "Los {n} elementos, de más a menos riesgo",
+        "site_in_table": "Ver en la tabla",
         # ---- regions index
         "regions_intro": "Índice relativo (0-100, percentil 99 = 100) por celda de ~500 m, especie y mes, a partir de "
                          "OpenStreetMap, GBIF/eBird, Movebank y topografía. Sirve para priorizar qué apoyos, tramos y "
@@ -221,6 +232,17 @@ UI = {
         "ranking_files": "Full ranking in <code>ranking_elements.csv</code> and "
                          "<code>ranking_elements.geojson</code>; monthly rasters in <code>risk_total.tif</code>.",
         "back_to_regions": "All regions",
+        # ---- one page per Natura 2000 site
+        "site_page_title": "{site} · high-risk elements for birds",
+        "site_lede": "{n} high-risk elements for birds inside {site} ({kind} {code}).",
+        "site_rule": "High risk: the {share} % of the elements of {region} with the highest maximum index. It is the "
+                     "same count Estado de las IBA publishes; an element inside two sites counts in both.",
+        "site_full_map": "Full map of {region}",
+        "site_report": "Report of {region}",
+        "site_hub": "This site in Estado de las IBA",
+        "site_map_label": "Map of the high-risk elements in {site}",
+        "site_h2_list": "The {n} elements, from most to least risk",
+        "site_in_table": "See in the table",
         # ---- regions index
         "regions_intro": "Relative index (0-100, 99th percentile = 100) per ~500 m cell, species and month, built from "
                          "OpenStreetMap, GBIF/eBird, Movebank and terrain data. It ranks which pylons, line segments "

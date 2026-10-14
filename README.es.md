@@ -27,6 +27,8 @@ El código y los datos de salida están en inglés. La versión en inglés de es
 7. `ebirdst.py` (opcional): GeoTIFF semanales de eBird Status & Trends → meses → mezcla con GBIF.
 8. `score.py`: estadísticas del índice sobre polígonos de proyectos (integración con el observatorio de alegaciones).
 9. `site.py`: páginas de regiones `output/regions.<lang>.html`, redirecciones de las URL antiguas y copia de `web/` (la portada).
+10. `signals.py`: `output/signals.json` para [Estado de las IBA](https://asensio94.github.io/estado-iba/): por región y
+   espacio Natura 2000, el número de elementos en el 10 % de mayor `risk_max` de la región (solo recuentos, nunca dónde están).
 
 Todo se cachea en `data/cache/`.
 
@@ -114,7 +116,7 @@ python -m birdrisk.cli species                       # especies y pesos
 python -m birdrisk.cli run --bbox 39.6,-6.3,40.0,-5.7 -s "Aegypius monachus" -s "Ciconia nigra"
 python -m birdrisk.cli run --region estrecho --movebank        # añade datasets publicados en Movebank (descargas de cientos de MB)
 python -m birdrisk.cli run --region estrecho --study-id 123456 # estudios Movebank concretos (públicos o con MOVEBANK_USER/MOVEBANK_PASSWORD)
-python -m birdrisk.cli index                                   # regenera output/regions.es.html y regions.en.html y copia web/ (lo hace también `run`)
+python -m birdrisk.cli index                                   # regenera output/regions.es.html y regions.en.html y copia web/ (lo hace también `run`); luego escribe output/signals.json
 python -m birdrisk.cli score --region cantabria --observatory ../observatorio-alegaciones   # índice de riesgo de cada proyecto en información pública
 python -m birdrisk.cli score --region cantabria --geojson proyectos.geojson                  # o de cualquier polígono
 ```
@@ -169,8 +171,10 @@ rama intermedia.
 | `terrain.tif` | elevación, pendiente y TPI |
 | `scored_projects.csv` | lo escribe `score`: estadísticas del índice por polígono de proyecto |
 
-`index` escribe `output/regions.es.html` y `output/regions.en.html` y copia `web/` en `output/`. Las descargas se cachean
-en `data/cache/` (GBIF, OSM, terreno, Movebank). Ni `output/` ni `data/cache/` se suben al repositorio.
+`index` escribe `output/regions.es.html` y `output/regions.en.html`, copia `web/` en `output/` y escribe
+`output/signals.json` con todas las regiones calculadas; si no se puede descargar la capa Natura 2000, ese fichero se omite
+con un aviso y el resto se publica igual. Las descargas se cachean en `data/cache/` (GBIF, OSM, terreno, Movebank).
+Ni `output/` ni `data/cache/` se suben al repositorio.
 
 ## Fuentes y licencias
 
@@ -181,6 +185,7 @@ en `data/cache/` (GBIF, OSM, terreno, Movebank). Ni `output/` ni `data/cache/` s
 | AWS Terrain Tiles (terrarium) | elevación ~30 m → pendiente y posición topográfica | público, sin clave |
 | Movebank Data Repository | datasets GPS publicados (CC0/CC-BY), búsqueda por especie y descarga de CSV | público, sin clave |
 | Movebank API | estudios públicos (`public/json`) o con cuenta (`direct-read`) | opcional |
+| Espacios Natura 2000 ([capa de Vigía de incendios](https://asensio94.github.io/vigia-incendios/natura.geojson), ~300 m) | elementos de riesgo alto contados por espacio para `signals.json` | público, sin clave |
 
 **eBird Status & Trends** (abundancia semanal modelada a 3 km) es la mejor capa de abundancia, pero exige solicitar
 una clave y se distribuye vía R (`ebirdst`). Ya está integrado como opción: descarga los GeoTIFF
