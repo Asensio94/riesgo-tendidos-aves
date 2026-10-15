@@ -61,8 +61,9 @@ def page_head(lang, title, own_css):
 </style></head>"""
 
 
-def site_footer(lang):
-    """Common footer: the shared principle, this project's sources and licences, and the sibling projects."""
+def site_footer(lang, country=None):
+    """Common footer: the shared principle, this project's sources and licences (those of `country`), and the
+    sibling projects."""
     current = ' aria-current="page"'
     items = "\n".join(
         f"    <li{current if slug == SELF_SLUG else ''}>"
@@ -70,7 +71,7 @@ def site_footer(lang):
         for slug, name in SIBLINGS)
     return f"""<footer class="site-footer">
   <p class="principle">{escape(i18n.t(lang, 'principle'))}</p>
-  <p>{i18n.t(lang, 'footer_sources', repo=config.REPO_URL)}</p>
+  <p>{i18n.t(lang, 'footer_sources', country=country, repo=config.REPO_URL)}</p>
   <nav aria-label="{escape(i18n.t(lang, 'siblings_label'))}"><ul class="siblings">
 {items}
   </ul></nav>
@@ -83,10 +84,24 @@ def figures_html(pairs):
         f"<div><b>{escape(str(value))}</b><span>{escape(label)}</span></div>" for value, label in pairs) + "</div>"
 
 
-def method_section(lang):
-    """The 'How it is computed' section shared by the regions page and the reports."""
+def method_section(lang, countries=("ES",)):
+    """The 'How it is computed' section shared by the regions page and the reports: the method of each country,
+    under the country's name when there is more than one."""
+    if len(countries) == 1:
+        body = i18n.method_html(lang, countries[0])
+    else:
+        body = "\n".join(f'<h3 class="country">{escape(i18n.t(lang, "country_" + c))}</h3>\n'
+                         f"{i18n.method_html(lang, c)}" for c in countries)
     return (f'<section class="method" id="method">\n<h2>{escape(i18n.t(lang, "method_title"))}</h2>\n'
-            f"{i18n.method_html(lang)}\n</section>")
+            f"{body}\n</section>")
+
+
+def lang_switch(current, hrefs):
+    """Small pill switcher: the current language, then a link to the same page in each of the others
+    ({lang: href}), each named in its own language."""
+    links = " ".join(f'<a href="{href}" hreflang="{other}">{i18n.t(other, "lang_name")}</a>'
+                     for other, href in hrefs.items())
+    return f'<p class="lang"><span class="on">{i18n.t(current, "lang_name")}</span> {links}</p>'
 
 
 def write_redirect(path, target, lang="es"):
@@ -99,6 +114,15 @@ def region_redirects(region_dir):
     region_dir = Path(region_dir)
     write_redirect(region_dir / "informe.html", "report.es.html")
     write_redirect(region_dir / "mapa.html", "map.es.html")
+
+
+def _source_link(r, lang):
+    """Link of a ranking row to its source: "OSM" for OpenStreetMap, the Enedis dataset otherwise."""
+    url = getattr(r, "source_url", None)
+    if not isinstance(url, str) or not url:
+        url = r.osm_url  # rankings written before the source columns existed
+    label = i18n.t(lang, "popup_enedis") if getattr(r, "source", "osm") == "enedis" else "OSM"
+    return f"<a href='{escape(str(url))}' target='_blank'>{escape(label)}</a>"
 
 
 def _card(folder, lang):
@@ -116,7 +140,7 @@ def _card(folder, lang):
             f"<li>{escape(i18n.element_type(r.type, lang))} · {r.risk_max:.0f} · "
             f"{escape(i18n.month_label_from_canonical(r.peak_month, lang))} · "
             f"{escape(i18n.species_list(r.species, lang))[:70]} "
-            f"· <a href='{escape(str(r.osm_url))}' target='_blank'>OSM</a></li>"
+            f"· {_source_link(r, lang)}</li>"
             for r in df.drop_duplicates(subset=["type", "risk_max"]).head(5).itertuples())
         breakdown = ", ".join(f"{i18n.num(v, lang)} {i18n.element_type_plural(k, lang)}" for k, v in counts.items())
         top = (f"<p class='meta'>{escape(i18n.t(lang, 'regions_scored', n=i18n.num(scored, lang), breakdown=breakdown))}"
@@ -146,6 +170,7 @@ REGIONS_CSS = PAGE_CSS + """
 .site-header p.links{margin:0}
 main{max-width:1440px;margin:0 auto;padding:0 16px 8px}
 main h2{font:700 24px/1.1 var(--font-title);text-transform:uppercase;letter-spacing:.03em;margin:1.2em 0 .2em}
+main h2.country{font-size:30px;margin-top:1.4em;color:var(--accent)}
 .meta{color:var(--muted);margin:.2em 0;font-size:14.5px}
 main ol{font-size:14.5px}
 section.region{border-top:1px solid var(--line);padding-top:.4em}
@@ -153,29 +178,42 @@ section.region{border-top:1px solid var(--line);padding-top:.4em}
 """
 
 
+# Front page of each language (the static presentation in web/) and the other languages its regions page links to
+HOME = {"es": "index.html", "en": "index.en.html", "fr": "index.fr.html"}
+SWITCH = {"es": ("en",), "fr": ("en",), "en": ("es", "fr")}
+
+
 def _regions_page(out, lang):
-    cards = [_card(folder, lang) for folder in sorted(p for p in out.iterdir()
-                                                      if p.is_dir() and (p / f"report.{lang}.html").exists())]
-    other = "en" if lang == "es" else "es"
-    home = "index.html" if lang == "es" else "index.en.html"
+    """Regions page of one language: the regions published in it, grouped by country when there are several."""
+    folders = sorted(p for p in out.iterdir() if p.is_dir() and (p / f"report.{lang}.html").exists())
+    countries = [c for c in config.COUNTRY_LANGS if lang in config.COUNTRY_LANGS[c]]
+    by_country = {c: [_card(f, lang) for f in folders if config.region_country(f.name) == c] for c in countries}
+    shown = [c for c in countries if by_country[c]] or countries[:1]
+    cards = [card for c in shown for card in by_country[c]]
+    if len(shown) > 1:
+        body = "".join(f'<h2 class="country">{escape(i18n.t(lang, "country_" + c))}</h2>'
+                       + "".join(html for html, _ in by_country[c]) for c in shown)
+    else:
+        body = "".join(html for html, _ in cards)
+    switch = {other: f"regions.{other}.html" for other in SWITCH[lang]}
     figures = figures_html([(i18n.num(len(cards), lang), i18n.t(lang, "fig_regions")),
                             (i18n.num(sum(n for _, n in cards), lang), i18n.t(lang, "fig_elements"))])
+    country = shown[0] if len(shown) == 1 else None
     html = f"""{page_head(lang, i18n.t(lang, 'site_title'), REGIONS_CSS)}<body>
 <header class="site-header">
- <p class="lang"><span class="on">{i18n.t(lang, "lang_name")}</span>
-  <a href="regions.{other}.html" hreflang="{other}">{i18n.t(lang, "other_lang_name")}</a></p>
+ {lang_switch(lang, switch)}
  <h1>{LOGO_SVG}{i18n.t(lang, 'h1_html')}</h1>
  <p class="lede">{escape(i18n.t(lang, 'regions_intro'))}</p>
- <p class="links"><a href="{home}">{escape(i18n.t(lang, 'regions_project_link'))}</a> ·
+ <p class="links"><a href="{HOME[lang]}">{escape(i18n.t(lang, 'regions_project_link'))}</a> ·
   <a href="{config.REPO_URL}">{escape(i18n.t(lang, 'regions_code_link'))}</a></p>
  {figures}
 </header>
 <main>
-{''.join(html for html, _ in cards) or f'<p>{escape(i18n.t(lang, "regions_empty"))}</p>'}
+{body or f'<p>{escape(i18n.t(lang, "regions_empty"))}</p>'}
 <p class="meta">{escape(i18n.t(lang, 'generated_on', date=date.today().isoformat()))}</p>
 </main>
-{method_section(lang)}
-{site_footer(lang)}
+{method_section(lang, tuple(shown))}
+{site_footer(lang, country)}
 </body></html>"""
     path = out / f"regions.{lang}.html"
     path.write_text(html, encoding="utf-8")
@@ -183,7 +221,7 @@ def _regions_page(out, lang):
 
 
 def index(output_dir=None):
-    """Rebuild the regions pages in both languages, the legacy redirects and the copy of `web/`."""
+    """Rebuild the regions page of every language, the legacy redirects and the copy of `web/`."""
     out = Path(output_dir or config.OUTPUT_DIR)
     paths = [_regions_page(out, lang) for lang in config.LANGS]
     write_redirect(out / "regiones.html", "regions.es.html")  # pre-bilingual URL

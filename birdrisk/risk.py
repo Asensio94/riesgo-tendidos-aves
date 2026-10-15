@@ -2,7 +2,7 @@
 
 For each species s and month m, on every grid cell:
 
-  electro[s,m] = P[s,m] * w_electro[s] * pylons_eq                        (distribution pylons, <=66 kV)
+  electro[s,m] = P[s,m] * w_electro[s] * pylons_eq             (distribution pylons: <=66 kV ES, <=50 kV FR)
   col_lin[s,m] = P[s,m] * w_col_lin[s] * line_km * (1 + relief)           (all conductors)
   col_aer[s,m] = P[s,m] * w_col_aer[s] * n_turbines * (1 + ridge)
 
@@ -91,6 +91,21 @@ def _dominant_species(result, mechanism, r, c, m, n=3):
     return ", ".join(sp for _, sp in contrib[:n])
 
 
+# Enedis publishes no page per object: its elements link to the dataset they come from
+ENEDIS_DATASET_URL = "https://data.enedis.fr/datasets/{dataset}"
+
+
+def _source(element, osm_type):
+    """Origin columns of a ranking row: source, source_id, source_url and, for OSM elements only, osm_id/osm_url."""
+    source = element.get("source", "osm")
+    if source == "osm":
+        url = f"https://www.openstreetmap.org/{osm_type}/{element['id']}"
+        return dict(source="osm", source_id=str(element["id"]), source_url=url, osm_id=element["id"], osm_url=url)
+    dataset = config.ENEDIS_HTA if osm_type == "way" else config.ENEDIS_POLES
+    return dict(source=source, source_id=str(element["id"]), source_url=ENEDIS_DATASET_URL.format(dataset=dataset),
+                osm_id=None, osm_url=None)
+
+
 def rank_elements(result, infra, grid):
     """Score every pylon, wind turbine and line segment from the cells it occupies."""
     rows = []
@@ -105,8 +120,7 @@ def rank_elements(result, infra, grid):
         hazard = a.get("hazard", 1.0)
         series = agg["electro"][:, r, c] * hazard
         m = int(series.argmax())
-        rows.append(dict(type="pylon", osm_id=a["id"], osm_url=f"https://www.openstreetmap.org/node/{a['id']}",
-                         lat=a["lat"], lon=a["lon"], mechanism=MECHANISM_LABEL["electro"], category=a["category"],
+        rows.append(dict(type="pylon", **_source(a, "node"), lat=a["lat"], lon=a["lon"], mechanism=MECHANISM_LABEL["electro"], category=a["category"],
                          voltage=a["voltage"], detail=a["type"], operator=a["operator"], hazard=hazard,
                          risk_max=float(series.max()), risk_mean=float(series.mean()),
                          peak_month=config.MONTHS[m], species=_dominant_species(result, "electro", r, c, m)))
@@ -116,8 +130,7 @@ def rank_elements(result, infra, grid):
             continue
         series = agg["col_aer"][:, r, c]
         m = int(series.argmax())
-        rows.append(dict(type="turbine", osm_id=t["id"], osm_url=f"https://www.openstreetmap.org/node/{t['id']}",
-                         lat=t["lat"], lon=t["lon"], mechanism=MECHANISM_LABEL["col_aer"], category="wind",
+        rows.append(dict(type="turbine", **_source(t, "node"), lat=t["lat"], lon=t["lon"], mechanism=MECHANISM_LABEL["col_aer"], category="wind",
                          voltage=None, detail=t["power_output"], operator=t["operator"],
                          risk_max=float(series.max()), risk_mean=float(series.mean()),
                          peak_month=config.MONTHS[m], species=_dominant_species(result, "col_aer", r, c, m)))
@@ -133,8 +146,7 @@ def rank_elements(result, infra, grid):
         m = int(series.argmax())
         worst = int(agg["col_lin"][m].flat[cells].argmax())
         r, c = divmod(int(cells[worst]), grid.nx)
-        rows.append(dict(type="line", osm_id=ln["id"], osm_url=f"https://www.openstreetmap.org/way/{ln['id']}",
-                         lat=float(lat[ok].mean()), lon=float(lon[ok].mean()),
+        rows.append(dict(type="line", **_source(ln, "way"), lat=float(lat[ok].mean()), lon=float(lon[ok].mean()),
                          mechanism=MECHANISM_LABEL["col_lin"], category=ln["category"], voltage=ln["voltage"],
                          detail=ln["name"] or ln["power"], operator=ln["operator"],
                          risk_max=float(series.max()), risk_mean=float(series.mean()),

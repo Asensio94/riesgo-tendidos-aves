@@ -8,7 +8,7 @@ import json
 from html import escape
 from pathlib import Path
 
-from . import config, i18n, site
+from . import config, i18n, report, site
 
 HUB_URL = "https://asensio94.github.io/estado-iba/#/e/"
 COLOUR = {"turbine": "#8e44ad", "pylon": "#e74c3c", "line": "#d35400"}  # as in the region's map
@@ -40,7 +40,8 @@ def _rows(rows):
                     "risk": round(float(r["risk_max"])), "mechanism": r.get("mechanism") or "",
                     "month": r.get("peak_month") or "", "species": r.get("species") or "",
                     "category": r.get("category") or "", "voltage": r.get("voltage") or "",
-                    "osm": r.get("osm_url") or "", "osm_id": r.get("osm_id") or ""})
+                    "osm": r.get("source_url") or r.get("osm_url") or "", "osm_id": report.osm_id_text(r.get("osm_id")),
+                    "source": r.get("source") or "osm"})
     return out
 
 
@@ -51,15 +52,21 @@ def _kv(v):
         return ""
 
 
+def _source_label(x):
+    """What the link of an element says: its OSM id, or "Enedis" for the elements of the Enedis datasets."""
+    return "Enedis" if x["source"] == "enedis" else str(x["osm_id"] or "OSM")
+
+
 def _osm(x):
     if not x["osm"]:
         return ""
-    return f'<a href="{escape(x["osm"])}" target="_blank" rel="noopener">{escape(x["osm_id"])}</a>'
+    return f'<a href="{escape(x["osm"])}" target="_blank" rel="noopener">{escape(_source_label(x))}</a>'
 
 
 def page(region, code, props, outline, rows, lang):
     """The HTML of one site's page in one language."""
-    other = "en" if lang == "es" else "es"
+    langs = config.region_langs(region)
+    others = {o: f"{escape(code)}.{o}.html" for o in langs if o != lang}
     name, kind = props.get("nombre") or code, props.get("tipo") or ""
     region_label = config.region_name(region, lang)
     items = _rows(rows)
@@ -68,7 +75,8 @@ def page(region, code, props, outline, rows, lang):
     labels = [{"n": i + 1, "type": i18n.element_type(x["type"], lang), "mechanism": i18n.mechanism(x["mechanism"], lang),
                "month": i18n.month_label_from_canonical(x["month"], lang) if x["month"] else "",
                "species": i18n.species_list(x["species"], lang), "colour": COLOUR.get(x["type"], "#7f8c8d"),
-               "lat": x["lat"], "lon": x["lon"], "risk": x["risk"], "osm": x["osm"]} for i, x in enumerate(items)]
+               "lat": x["lat"], "lon": x["lon"], "risk": x["risk"], "osm": x["osm"],
+               "src": "Enedis" if x["source"] == "enedis" else "OSM"} for i, x in enumerate(items)]
     table = "".join(
         f'<tr id="e{i + 1}"><td class="n">{i + 1}</td>'
         f'<td><span class="dot" style="background:{COLOUR.get(x["type"], "#7f8c8d")}"></span>'
@@ -79,15 +87,14 @@ def page(region, code, props, outline, rows, lang):
         f'<td>{_osm(x)}</td></tr>'
         for i, x in enumerate(items))
     hub = (f' · <a href="{HUB_URL}{escape(code)}">{escape(i18n.t(lang, "site_hub"))}</a>'
-           if "ZEPA" in kind else "")
+           if "ZEPA" in kind or "ZPS" in kind else "")  # the hub follows the bird sites (SPA)
     data = json.dumps({"outline": outline, "items": labels}, ensure_ascii=False).replace("</", "<\\/")
     title = i18n.t(lang, "site_page_title", site=name)
     return f"""{site.page_head(lang, title, CSS)}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <body>
 <header class="site-header">
- <p class="lang"><span class="on">{i18n.t(lang, "lang_name")}</span>
-  <a href="{escape(code)}.{other}.html" hreflang="{other}">{i18n.t(lang, "other_lang_name")}</a></p>
+ {site.lang_switch(lang, others)}
  <h1>{site.LOGO_SVG}{i18n.t(lang, 'h1_html')}</h1>
  <p class="lede">{escape(i18n.t(lang, 'site_lede', n=len(items), site=name, kind=kind, code=code))}</p>
  <p class="links"><a href="../map.{lang}.html">{escape(i18n.t(lang, 'site_full_map', region=region_label))}</a> ·
@@ -105,7 +112,7 @@ def page(region, code, props, outline, rows, lang):
 <th>{escape(i18n.t(lang, 'th_category'))}</th><th>{escape(i18n.t(lang, 'th_osm'))}</th></tr></thead>
 <tbody>{table}</tbody></table></div>
 </main>
-{site.site_footer(lang)}
+{site.site_footer(lang, config.region_country(region))}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const D = {data};
@@ -120,7 +127,7 @@ for (const x of D.items) {{
     .bindPopup(`<b>#${{x.n}} · ${{esc(x.type)}}</b> (${{esc(x.mechanism)}})<br>{escape(i18n.t(lang, 'th_risk_max'))}: ${{x.risk}}`
       + (x.month ? ` · ${{esc(x.month)}}` : "") + (x.species ? `<br>${{esc(x.species)}}` : "")
       + `<br><a href="#e${{x.n}}">{escape(i18n.t(lang, 'site_in_table'))}</a>`
-      + (x.osm ? ` · <a href="${{esc(x.osm)}}" target="_blank" rel="noopener">OSM</a>` : ""))
+      + (x.osm ? ` · <a href="${{esc(x.osm)}}" target="_blank" rel="noopener">${{x.src}}</a>` : ""))
     .on("click", () => {{ for (const tr of document.querySelectorAll("tr.on")) tr.classList.remove("on");
                          document.getElementById("e" + x.n)?.classList.add("on"); }})
     .addTo(map);
@@ -142,7 +149,7 @@ def write(out, inside, natura, regions, path_of):
     for (region, code), rows in inside.items():
         f = feats[code]
         outline = {"type": "Feature", "properties": {}, "geometry": f["geometry"]}
-        for lang in ("es", "en"):
+        for lang in config.region_langs(region):
             path = out / path_of(region, code, lang)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(page(region, code, f["properties"], outline, rows, lang), encoding="utf-8")
