@@ -13,6 +13,8 @@ y actualizarlo sin depender de un estudio puntual.
 Prototipo v0.1 (septiembre 2026). Funciona sin ninguna clave de API. Movebank es opcional.
 El código y los datos de salida están en inglés. La versión en inglés de este fichero es [README.md](README.md).
 
+> **Estado: activo.** Se actualiza solo y sigue en desarrollo.
+
 ## Cómo funciona
 
 1. `osm.py`: Overpass (con espejos), clasificación de líneas por voltaje, voltaje heredado por los apoyos, rasterización.

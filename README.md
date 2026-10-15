@@ -13,6 +13,8 @@ and refresh it without depending on a one-off survey.
 Prototype v0.1 (September 2026). Runs without any API key. Movebank is optional.
 This file has a Spanish counterpart in [README.es.md](README.es.md).
 
+> **Status: active.** It updates itself and is still being developed.
+
 ## How it works
 
 1. `osm.py`: Overpass (with mirrors), classification of power lines by voltage, voltage inherited by the pylons, rasterisation.
