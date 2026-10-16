@@ -26,7 +26,8 @@ EBIRD_CODES = {
     "Milvus milvus": "redkit1", "Ciconia ciconia": "whisto1", "Ciconia nigra": "blasto1", "Grus grus": "comcra",
     "Otis tarda": "grebus1", "Bubo bubo": "eueowl1", "Gypaetus barbatus": "lambea1", "Pernis apivorus": "euhbuz1",
     "Falco peregrinus": "perfal", "Pyrrhocorax pyrrhocorax": "rebcho1", "Platalea leucorodia": "eurspo1",
-    "Ardea cinerea": "gryher1",
+    "Ardea cinerea": "gryher1", "Tetrax tetrax": "litbus1", "Falco naumanni": "leskes1",
+    "Haliaeetus albicilla": "whteag", "Ardea purpurea": "purher1",
 }
 
 

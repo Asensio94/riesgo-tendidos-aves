@@ -46,7 +46,7 @@ def test_counts_the_top_tenth_of_each_region_inside_each_site():
         "cantabria-ES1": 1, "cantabria-ES2": 1, "estrecho-ES3": 2}
     assert [s["id"] for s in doc["signals"]] == ["cantabria-ES1", "cantabria-ES2", "estrecho-ES3"]  # date, then id
     s = doc["signals"][-1]
-    assert s == {"id": "estrecho-ES3", "kind": "power_line", "date": "2026-10-02",
+    assert s == {"id": "estrecho-ES3", "kind": "power_line", "country": "ES", "date": "2026-10-02",
                  "title": "1 aerogenerador y 1 apoyo de riesgo alto para las aves dentro del espacio",
                  "url": "https://asensio94.github.io/riesgo-tendidos-aves/estrecho/sites/ES3.es.html",
                  "sites": [{"code": "ES3"}], "municipalities": [], "precision": "punto", "deadline": None,
@@ -63,7 +63,7 @@ def test_titles_name_wind_turbines_first():
 def test_coverage_is_every_site_around_the_modelled_elements():
     doc = _doc()
     assert {k: doc[k] for k in ("source", "version", "generated")} == {
-        "source": "riesgo-tendidos-aves", "version": 1, "generated": "2026-10-13T07:02Z"}
+        "source": "riesgo-tendidos-aves", "version": 2, "generated": "2026-10-13T07:02Z"}
     assert doc["coverage"] == {
         "label": "Cantabria y el Estrecho", "sites": ["ES1", "ES2", "ES3"],  # ES9 lies outside both regions
         "note": S.NOTE}

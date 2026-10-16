@@ -58,11 +58,11 @@ def parse_voltage(tags):
     return max(vals) if vals else None
 
 
-def line_category(tags):
-    """'distribution' (≤66 kV, electrocution risk), 'transmission' (>66 kV) or 'unknown'."""
+def line_category(tags, max_v=config.ELECTROCUTION_MAX_V):
+    """'distribution' (≤ max_v: 66 kV in Spain, 50 kV in France; electrocution risk), 'transmission' or 'unknown'."""
     v = parse_voltage(tags)
     if v is not None:
-        return "distribution" if v <= config.ELECTROCUTION_MAX_V else "transmission"
+        return "distribution" if v <= max_v else "transmission"
     if tags.get("power") == "minor_line":
         return "distribution"
     return "unknown"
@@ -95,7 +95,7 @@ def pylon_hazard(tags):
     return round(min(max(f, 0.5), 2.0), 2)
 
 
-def parse(data):
+def parse(data, max_v=config.ELECTROCUTION_MAX_V):
     """Split the Overpass elements into lines, pylons and wind turbines, with derived attributes."""
     lines, pylons, turbines = [], [], []
     voltage_by_node = {}
@@ -105,10 +105,10 @@ def parse(data):
             geom = e.get("geometry") or []
             if len(geom) < 2:
                 continue
-            cat = line_category(tags)
+            cat = line_category(tags, max_v)
             v = parse_voltage(tags)
             lines.append({
-                "id": e["id"], "power": tags["power"], "voltage": v, "category": cat,
+                "id": e["id"], "source": "osm", "power": tags["power"], "voltage": v, "category": cat,
                 "operator": tags.get("operator"), "name": tags.get("name"),
                 "coords": [(g["lon"], g["lat"]) for g in geom],
             })
@@ -128,7 +128,7 @@ def parse(data):
                 lat = float(np.mean([g["lat"] for g in geom]))
                 lon = float(np.mean([g["lon"] for g in geom]))
             turbines.append({
-                "id": e["id"], "lat": lat, "lon": lon,
+                "id": e["id"], "source": "osm", "lat": lat, "lon": lon,
                 "power_output": tags.get("generator:output:electricity"),
                 "height": tags.get("height"), "operator": tags.get("operator"), "name": tags.get("name"),
             })
@@ -137,7 +137,7 @@ def parse(data):
             if cat is None:
                 cat = "distribution" if tags.get("power") == "pole" else "unknown"
             pylons.append({
-                "id": e["id"], "lat": e["lat"], "lon": e["lon"], "type": tags["power"],
+                "id": e["id"], "source": "osm", "lat": e["lat"], "lon": e["lon"], "type": tags["power"],
                 "voltage": v, "category": cat, "material": tags.get("material"),
                 "design": tags.get("design"), "operator": tags.get("operator"),
                 "hazard": pylon_hazard(tags),
@@ -146,8 +146,14 @@ def parse(data):
     return {"lines": lines, "pylons": pylons, "turbines": turbines}
 
 
-def get_infrastructure(bbox, force=False):
-    return parse(download(bbox, force=force))
+def get_infrastructure(bbox, force=False, country="ES"):
+    """Lines, pylons and wind turbines of the bbox. In France the distribution network is completed with Enedis
+    and everything is clipped to French territory (see france.py)."""
+    infra = parse(download(bbox, force=force), max_v=config.electrocution_max_v(country))
+    if country == "FR":
+        from . import france
+        infra = france.complete(infra, bbox, force=force)
+    return infra
 
 
 def _densify(coords, step_deg):
@@ -212,4 +218,5 @@ def summary(infra):
         "pylons_distribution": sum(a["category"] == "distribution" for a in infra["pylons"]),
         "pylons_tagged": sum(a["tagged"] for a in infra["pylons"]),
         "turbines": len(infra["turbines"]),
+        **({"enedis": infra["enedis"]} if "enedis" in infra else {}),
     }
