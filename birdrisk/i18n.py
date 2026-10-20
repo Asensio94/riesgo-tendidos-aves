@@ -22,6 +22,16 @@ MONTH_LABELS = {
     "fr": ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
 }
 
+# Full month names, for running text
+MONTH_NAMES = {
+    "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
+           "noviembre", "diciembre"],
+    "en": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+           "November", "December"],
+    "fr": ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
+           "novembre", "décembre"],
+}
+
 # Canonical value -> label, for the columns the ranking writes to disk.
 ELEMENT_TYPES = {
     "es": {"pylon": "apoyo", "turbine": "aerogenerador", "line": "línea"},
@@ -115,6 +125,10 @@ UI = {
         "th_risk_mean": "Medio",
         "th_peak_month": "Mes pico",
         "th_species_list": "Especies",
+        "th_why": "Por qué",
+        "ranking_why": "La columna «Por qué» desglosa cada índice en los factores del modelo: cuántas aves hay y de qué"
+                       " especies, cuánto tendido hay en la celda, el relieve y el tipo de apoyo. Los porcentajes "
+                       "comparan con el resto de celdas de la región.",
         "th_category": "Categoría",
         "th_operator": "Operador",
         "th_osm": "OSM",
@@ -133,7 +147,8 @@ UI = {
         "site_h2_list": "Los {n} elementos, de más a menos riesgo",
         "site_in_table": "Ver en la tabla",
         # ---- regions index
-        "regions_intro": "Índice relativo (0-100, percentil 99 = 100) por celda de ~500 m, especie y mes, a partir de "
+        "regions_intro": "Índice relativo (100 = percentil 99: lo que pasa de 100 es el 1 % con más riesgo) por "
+                         "celda de ~500 m, especie y mes, a partir de "
                          "OpenStreetMap, GBIF/eBird, Movebank y topografía. Sirve para priorizar qué apoyos, tramos y "
                          "aerogeneradores corregir primero, no para certificar mortalidad. Se regenera el día 2 de "
                          "cada mes.",
@@ -237,6 +252,10 @@ UI = {
         "th_risk_mean": "Mean",
         "th_peak_month": "Peak month",
         "th_species_list": "Species",
+        "th_why": "Why",
+        "ranking_why": "The “Why” column breaks each index down into the factors of the model: how many birds and of "
+                       "which species, how much line there is in the cell, the terrain and the type of pylon. "
+                       "Percentages compare with the other cells of the region.",
         "th_category": "Category",
         "th_operator": "Operator",
         "th_osm": "OSM",
@@ -255,7 +274,8 @@ UI = {
         "site_h2_list": "The {n} elements, from most to least risk",
         "site_in_table": "See in the table",
         # ---- regions index
-        "regions_intro": "Relative index (0-100, 99th percentile = 100) per ~500 m cell, species and month, built from "
+        "regions_intro": "Relative index (100 = 99th percentile: anything above 100 is the riskiest 1%) per "
+                         "~500 m cell, species and month, built from "
                          "OpenStreetMap, GBIF/eBird, Movebank and terrain data. It ranks which pylons, line segments "
                          "and wind turbines to fix first; it does not certify mortality. Rebuilt on the 2nd of every "
                          "month.",
@@ -364,6 +384,10 @@ UI["fr"] = {
     "th_risk_mean": "Moyen",
     "th_peak_month": "Mois de pointe",
     "th_species_list": "Espèces",
+    "th_why": "Pourquoi",
+    "ranking_why": "La colonne « Pourquoi » décompose chaque indice selon les facteurs du modèle : combien d’oiseaux et"
+                   " de quelles espèces, combien de réseau dans la maille, le relief et le type de support. Les "
+                   "pourcentages comparent avec les autres mailles de la région.",
     "th_category": "Catégorie",
     "th_operator": "Exploitant",
     "th_osm": "Source",
@@ -383,7 +407,8 @@ UI["fr"] = {
     "site_h2_list": "Les {n} éléments, du risque le plus élevé au plus faible",
     "site_in_table": "Voir dans le tableau",
     # ---- regions index
-    "regions_intro": "Indice relatif (0-100, 99e centile = 100) par cellule d’environ 500 m, espèce et mois, établi à "
+    "regions_intro": "Indice relatif (100 = 99e centile : au-delà de 100, le 1 % le plus à risque) par "
+                     "cellule d’environ 500 m, espèce et mois, établi à "
                      "partir d’OpenStreetMap, des données ouvertes d’Enedis, de GBIF/eBird, de Movebank et du relief. "
                      "Il sert à choisir quels supports, tronçons et éoliennes corriger en premier, pas à certifier une "
                      "mortalité. Mis à jour le 2 de chaque mois.",
@@ -847,3 +872,136 @@ def method_html(lang, country="ES"):
  <li>Las citas tienen sesgo de observador (carreteras, miradores, hotspots) aunque se corrija por esfuerzo, y no
   dicen a qué altura volaba el ave; solo algunos datasets GPS lo hacen.</li>
 </ul>"""
+
+
+# ---- why an element scores high: one sentence per factor of the model (see risk._Drivers)
+# Codes written by osm.pylon_hazard_reasons, in each language
+HAZARD_REASONS = {
+    "es": {"wood": "de madera (baja el riesgo)", "earthed": "metálico o de hormigón (puesto a tierra)",
+           "pin": "aisladores rígidos, con el cable por encima de la cruceta",
+           "anchor": "de amarre, con puentes por encima de la cruceta",
+           "suspension": "aisladores suspendidos (baja el riesgo)",
+           "branch": "derivación, seccionador o fin de línea", "wide_arm": "cruceta horizontal ancha",
+           "portal": "pórtico"},
+    "en": {"wood": "wooden (lowers the risk)", "earthed": "steel or concrete (earthed)",
+           "pin": "pin insulators, conductor above the cross-arm",
+           "anchor": "anchor pylon, jumpers above the cross-arm",
+           "suspension": "suspension insulators (lowers the risk)",
+           "branch": "branch, switch or line end", "wide_arm": "wide horizontal cross-arm", "portal": "portal"},
+    "fr": {"wood": "en bois (réduit le risque)", "earthed": "métallique ou en béton (relié à la terre)",
+           "pin": "isolateurs rigides, conducteur au-dessus de la traverse",
+           "anchor": "support d’ancrage, ponts au-dessus de la traverse",
+           "suspension": "isolateurs suspendus (réduit le risque)",
+           "branch": "dérivation, interrupteur ou fin de ligne", "wide_arm": "traverse horizontale large",
+           "portal": "portique"},
+}
+
+EXPLAIN = {
+    "es": {
+        "level": ((95, "muy alta"), (75, "alta"), (40, "media"), (0, "baja")),
+        "birds": "Aves: presencia {level} en {month}, mayor que en el {pct} de las celdas con {where}. "
+                 "Las especies que más pesan: {species}.",
+        "where": {"electro": "apoyos", "col_lin": "tendido", "col_aer": "aerogeneradores"},
+        "expo_electro": "Tendido: unos {n} apoyos de distribución en su celda de 500 m, más que en el {pct} de "
+                        "las celdas con apoyos.",
+        "expo_col_lin": "Tendido: {n} km de cable en su celda de 500 m, más que en el {pct} de las celdas con "
+                        "tendido.",
+        "expo_col_aer": "Aerogeneradores: {n} en su celda de 500 m.",
+        "terrain_col_lin": "Relieve: multiplica el riesgo por {f}; en laderas y collados el cable queda a la "
+                           "altura de vuelo.",
+        "terrain_col_aer": "Cresta: multiplica el riesgo por {f}; las aves planeadoras usan las corrientes de "
+                           "ladera.",
+        "hazard": "Apoyo: {reasons}; peligrosidad ×{f}.",
+        "hazard_none": "Apoyo sin datos de material ni armado: se le da peligrosidad media (×1).",
+        "index_high": "Índice {v}: {ratio} veces el umbral del 1 % de celdas con más riesgo de la región.",
+        "index": "Índice {v} de 100 (100 = umbral del 1 % de celdas con más riesgo de la región).",
+    },
+    "en": {
+        "level": ((95, "very high"), (75, "high"), (40, "medium"), (0, "low")),
+        "birds": "Birds: {level} presence in {month}, higher than in {pct} of the cells with {where}. "
+                 "Main species: {species}.",
+        "where": {"electro": "pylons", "col_lin": "power lines", "col_aer": "wind turbines"},
+        "expo_electro": "Network: about {n} distribution pylons in its 500 m cell, more than in {pct} of the cells "
+                        "with pylons.",
+        "expo_col_lin": "Network: {n} km of wire in its 500 m cell, more than in {pct} of the cells with lines.",
+        "expo_col_aer": "Wind turbines: {n} in its 500 m cell.",
+        "terrain_col_lin": "Terrain: multiplies the risk by {f}; on slopes and passes the wires sit at flight "
+                           "height.",
+        "terrain_col_aer": "Ridge: multiplies the risk by {f}; soaring birds ride the slope updraughts.",
+        "hazard": "Pylon: {reasons}; hazard ×{f}.",
+        "hazard_none": "Pylon with no material or cross-arm data: given an average hazard (×1).",
+        "index_high": "Index {v}: {ratio} times the threshold of the region's riskiest 1% of cells.",
+        "index": "Index {v} out of 100 (100 = threshold of the region's riskiest 1% of cells).",
+    },
+    "fr": {
+        "level": ((95, "très forte"), (75, "forte"), (40, "moyenne"), (0, "faible")),
+        "birds": "Oiseaux : présence {level} en {month}, plus élevée que dans {pct} des mailles avec {where}. "
+                 "Espèces principales : {species}.",
+        "where": {"electro": "supports", "col_lin": "lignes", "col_aer": "éoliennes"},
+        "expo_electro": "Réseau : environ {n} supports de distribution dans sa maille de 500 m, plus que dans "
+                        "{pct} des mailles avec supports.",
+        "expo_col_lin": "Réseau : {n} km de câble dans sa maille de 500 m, plus que dans {pct} des mailles avec "
+                        "lignes.",
+        "expo_col_aer": "Éoliennes : {n} dans sa maille de 500 m.",
+        "terrain_col_lin": "Relief : multiplie le risque par {f} ; sur les pentes et les cols, les câbles sont à "
+                           "hauteur de vol.",
+        "terrain_col_aer": "Crête : multiplie le risque par {f} ; les planeurs y profitent des ascendances.",
+        "hazard": "Support : {reasons} ; dangerosité ×{f}.",
+        "hazard_none": "Support sans données de matériau ni d’armement : dangerosité moyenne (×1).",
+        "index_high": "Indice {v} : {ratio} fois le seuil des 1 % de mailles les plus à risque de la région.",
+        "index": "Indice {v} sur 100 (100 = seuil des 1 % de mailles les plus à risque de la région).",
+    },
+}
+
+_MECHANISM_KEY = {"electrocution": "electro", "line_collision": "col_lin", "turbine_collision": "col_aer"}
+
+
+def _given(value):
+    return value is not None and value == value and value != ""  # not None, NaN or empty
+
+
+def _month_name(canonical, lang):
+    try:
+        return MONTH_NAMES.get(lang, MONTH_NAMES[DEFAULT_LANG])[config.MONTHS.index(canonical)]
+    except ValueError:
+        return canonical
+
+
+def explain(row, lang):
+    """Sentences saying why a ranking row scores what it scores, one per factor of the model.
+
+    `row` is a ranking row (any object with its columns as attributes); rankings written before the driver columns
+    existed only get the sentence on the index."""
+    e = EXPLAIN.get(lang, EXPLAIN[DEFAULT_LANG])
+    k = _MECHANISM_KEY.get(getattr(row, "mechanism", None), "electro")
+    v = float(row.risk_max)
+    out = [e["index_high"].format(v=num(round(v), lang), ratio=num(round(v / 100, 1), lang)) if v > 100
+           else e["index"].format(v=num(round(v), lang))]
+    birds_pct = getattr(row, "birds_pct", None)  # numbers from pandas, or text from csv.DictReader
+    if _given(birds_pct):
+        birds_pct = int(float(birds_pct))
+        level = next(word for floor, word in e["level"] if birds_pct >= floor)
+        names = [s.strip() for s in str(getattr(row, "species", "") or "").split(",") if s.strip()]
+        shares = str(getattr(row, "species_share", "") or "").split(";")
+        shares += [""] * (len(names) - len(shares))
+        species = ", ".join(f"{config.species_name(n, lang)} ({pct(int(float(s)), lang)})" if s
+                            else config.species_name(n, lang) for n, s in zip(names, shares))
+        out.append(e["birds"].format(level=level, month=_month_name(row.peak_month, lang),
+                                     pct=pct(birds_pct, lang), where=e["where"][k], species=species))
+    if _given(getattr(row, "exposure", None)):
+        n = float(row.exposure)
+        n = num(round(n, 1) if k == "col_lin" else int(round(n)), lang)
+        expo_pct = getattr(row, "exposure_pct", None)
+        out.append(e[f"expo_{k}"].format(n=n, pct=pct(int(float(expo_pct)), lang) if _given(expo_pct) else ""))
+    terrain = getattr(row, "terrain", None)
+    if _given(terrain) and float(terrain) >= 1.05:
+        out.append(e[f"terrain_{k}"].format(f=num(round(float(terrain), 2), lang)))
+    if getattr(row, "type", None) == "pylon":
+        why = getattr(row, "hazard_why", None)
+        if _given(why):
+            reasons = HAZARD_REASONS.get(lang, HAZARD_REASONS[DEFAULT_LANG])
+            out.append(e["hazard"].format(reasons=", ".join(reasons.get(c, c) for c in str(why).split(";")),
+                                          f=num(float(row.hazard), lang)))
+        elif _given(getattr(row, "hazard", None)) and float(row.hazard) == 1.0:
+            out.append(e["hazard_none"])
+    return [_fr_typography(s) for s in out] if lang == "fr" else out

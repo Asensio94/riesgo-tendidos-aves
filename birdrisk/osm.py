@@ -95,6 +95,31 @@ def pylon_hazard(tags):
     return round(min(max(f, 0.5), 2.0), 2)
 
 
+def pylon_hazard_reasons(tags):
+    """Codes of the tags that moved `pylon_hazard` away from 1.0, in the same order, ';'-joined (empty: no data).
+
+    Language-independent: the pages translate each code (i18n.HAZARD_REASONS)."""
+    reasons = []
+    material = (tags.get("material") or "").lower()
+    if "wood" in material:
+        reasons.append("wood")
+    elif material:
+        reasons.append("earthed")
+    attachment = (tags.get("line_attachment") or "").lower()
+    for key in ("pin", "anchor", "suspension"):
+        if key in attachment:
+            reasons.append(key)
+            break
+    management = (tags.get("line_management") or "").lower()
+    if any(k in management for k in ("branch", "split", "transition", "termination", "cross")):
+        reasons.append("branch")
+    if (tags.get("design") or "").lower() in ("h-frame", "one-level", "flag", "asymmetric"):
+        reasons.append("wide_arm")
+    if tags.get("power") == "portal":
+        reasons.append("portal")
+    return ";".join(reasons)
+
+
 def parse(data, max_v=config.ELECTROCUTION_MAX_V):
     """Split the Overpass elements into lines, pylons and wind turbines, with derived attributes."""
     lines, pylons, turbines = [], [], []
@@ -140,7 +165,7 @@ def parse(data, max_v=config.ELECTROCUTION_MAX_V):
                 "id": e["id"], "source": "osm", "lat": e["lat"], "lon": e["lon"], "type": tags["power"],
                 "voltage": v, "category": cat, "material": tags.get("material"),
                 "design": tags.get("design"), "operator": tags.get("operator"),
-                "hazard": pylon_hazard(tags),
+                "hazard": pylon_hazard(tags), "hazard_why": pylon_hazard_reasons(tags),
                 "tagged": any(k in tags for k in ("material", "line_attachment", "line_management", "design")),
             })
     return {"lines": lines, "pylons": pylons, "turbines": turbines}

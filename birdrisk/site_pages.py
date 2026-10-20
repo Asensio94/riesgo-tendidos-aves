@@ -7,6 +7,7 @@ its high-risk wind turbines, pylons and line segments, and lists them from most 
 import json
 from html import escape
 from pathlib import Path
+from types import SimpleNamespace
 
 from . import config, i18n, report, site
 
@@ -28,6 +29,7 @@ tr.on td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .wrap{overflow-x:auto}
 .meta{color:var(--muted);font-size:14.5px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+td.why{min-width:320px;font-size:12.5px;line-height:1.4;color:var(--muted)}
 @media (max-width:640px){#map{height:62vh}}
 """
 
@@ -41,7 +43,7 @@ def _rows(rows):
                     "month": r.get("peak_month") or "", "species": r.get("species") or "",
                     "category": r.get("category") or "", "voltage": r.get("voltage") or "",
                     "osm": r.get("source_url") or r.get("osm_url") or "", "osm_id": report.osm_id_text(r.get("osm_id")),
-                    "source": r.get("source") or "osm"})
+                    "source": r.get("source") or "osm", "row": r})
     return out
 
 
@@ -83,6 +85,7 @@ def page(region, code, props, outline, rows, lang):
         f'{escape(i18n.element_type(x["type"], lang))}</td>'
         f'<td>{escape(i18n.mechanism(x["mechanism"], lang))}</td><td class="n">{x["risk"]}</td>'
         f'<td>{escape(labels[i]["month"])}</td><td>{escape(labels[i]["species"])}</td>'
+        f'<td class="why">{"<br>".join(escape(w) for w in i18n.explain(SimpleNamespace(**x["row"]), lang))}</td>'
         f'<td>{escape(i18n.category(x["category"], lang))}{_kv(x["voltage"])}</td>'
         f'<td>{_osm(x)}</td></tr>'
         for i, x in enumerate(items))
@@ -109,7 +112,8 @@ def page(region, code, props, outline, rows, lang):
 <div class="wrap"><table><thead><tr><th>{escape(i18n.t(lang, 'th_rank'))}</th><th>{escape(i18n.t(lang, 'th_type'))}</th>
 <th>{escape(i18n.t(lang, 'th_mechanism'))}</th><th>{escape(i18n.t(lang, 'th_risk_max'))}</th>
 <th>{escape(i18n.t(lang, 'th_peak_month'))}</th><th>{escape(i18n.t(lang, 'th_species_list'))}</th>
-<th>{escape(i18n.t(lang, 'th_category'))}</th><th>{escape(i18n.t(lang, 'th_osm'))}</th></tr></thead>
+<th>{escape(i18n.t(lang, 'th_why'))}</th><th>{escape(i18n.t(lang, 'th_category'))}</th>
+<th>{escape(i18n.t(lang, 'th_osm'))}</th></tr></thead>
 <tbody>{table}</tbody></table></div>
 </main>
 {site.site_footer(lang, config.region_country(region))}

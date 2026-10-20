@@ -119,9 +119,11 @@ def build_map(result, infra, ranking, grid, region_label, lang, top=100, start_m
                  f"{tt('popup_peak_month')}: {i18n.month_label_from_canonical(r.peak_month, lang)}<br>"
                  f"{tt('popup_species')}: {escape(i18n.species_list(r.species, lang))}<br>"
                  f"{escape(i18n.category(r.category, lang))}{kv}<br>"
-                 f"{source_link(r, lang, tt('popup_osm'))}")
+                 f"{source_link(r, lang, tt('popup_osm'))}"
+                 f"<ul style='margin:4px 0 0;padding-left:16px'>"
+                 f"{''.join(f'<li>{escape(x)}</li>' for x in i18n.explain(r, lang))}</ul>")
         folium.CircleMarker((r.lat, r.lon), radius=5 + 5 * r.risk_max / ceiling, color=colour, weight=2,
-                            fill=True, fill_opacity=0.5, popup=folium.Popup(popup, max_width=320),
+                            fill=True, fill_opacity=0.5, popup=folium.Popup(popup, max_width=380),
                             tooltip=f"#{i + 1} {type_label} · {r.risk_max:.0f}").add_to(fg_rank)
     fg_rank.add_to(m)
 
@@ -189,6 +191,7 @@ iframe{display:block;width:100%;height:640px;border:1px solid var(--line);backgr
 .meta{color:var(--muted);font-size:14.5px}
 .wrap{overflow-x:auto}
 code{font-family:var(--font-data);font-size:.9em}
+td.why{min-width:340px;font-size:12.5px;line-height:1.4}
 @media (max-width:640px){iframe{height:70vh}}
 """
 
@@ -210,6 +213,7 @@ def report(path, map_rel, region_label, bbox, infra_summary, species_info, table
             f"<td>{escape(i18n.mechanism(r.mechanism, lang))}</td><td>{r.risk_max:.0f}</td>"
             f"<td>{r.risk_mean:.0f}</td><td>{escape(i18n.month_label_from_canonical(r.peak_month, lang))}</td>"
             f"<td>{escape(i18n.species_list(r.species, lang))}</td>"
+            f"<td class='why'>{'<br>'.join(escape(x) for x in i18n.explain(r, lang))}</td>"
             f"<td>{escape(i18n.category(r.category, lang))} {kv}</td><td>{escape(str(r.operator or ''))}</td>"
             f"<td>{source_link(r, lang)}</td></tr>")
     species_rows = "".join(
@@ -262,11 +266,12 @@ def report(path, map_rel, region_label, bbox, infra_summary, species_info, table
 <div class="wrap">{_table_html(table, lang)}</div>
 
 <h2>{escape(tt('h2_ranking', top=top))}</h2>
+<p>{escape(tt('ranking_why'))}</p>
 <div class="wrap"><table><thead><tr><th>{escape(tt('th_rank'))}</th>
 <th>{escape(tt('th_type'))}</th><th>{escape(tt('th_mechanism'))}</th>
 <th>{escape(tt('th_risk_max'))}</th><th>{escape(tt('th_risk_mean'))}</th>
 <th>{escape(tt('th_peak_month'))}</th><th>{escape(tt('th_species_list'))}</th>
-<th>{escape(tt('th_category'))}</th><th>{escape(tt('th_operator'))}</th>
+<th>{escape(tt('th_why'))}</th><th>{escape(tt('th_category'))}</th><th>{escape(tt('th_operator'))}</th>
 <th>{escape(tt('th_osm'))}</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
 <p>{tt('ranking_files')}</p>
 </main>

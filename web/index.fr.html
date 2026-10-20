@@ -511,7 +511,9 @@ collision_éolienne[s,m] = P[s,m] · w_col_aer[s] · nb_éoliennes · (1 + crêt
     <li><b>Mise à l’échelle et classement</b><span>Chaque indice est remis à l’échelle pour que le 99e centile de la région vaille 100, sans écrêter
       les maxima. Chaque poteau prend l’indice d’électrocution de sa maille multiplié par sa dangerosité ; chaque tronçon, la
       moyenne le long de son tracé ; chaque éolienne, celui de sa maille. On conserve le mois du pic et les trois espèces qui
-      contribuent le plus.</span></li>
+      contribuent le plus, avec leur part. Chaque élément explique son indice facteur par facteur : combien d’oiseaux
+      dans sa maille ce mois-là par rapport au reste de la région, combien de lignes ou de supports dans la maille, le
+      relief et, pour les supports, quelles étiquettes fixent leur dangerosité.</span></li>
     <li><b>Publier et recommencer</b><span>Carte interactive avec couches par mois, mécanisme et espèce ; rapport ; CSV et GeoJSON du
       classement ; GeoTIFF à 12 bandes pour QGIS. Un traitement automatique recalcule tout le 2 de chaque mois avec les nouvelles données.</span></li>
   </ol>
