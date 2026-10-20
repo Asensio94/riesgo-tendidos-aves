@@ -200,7 +200,8 @@ def merge(osm_infra, enedis_lines, enedis_poles, bbox, land=None):
             "id": p["id"], "source": "enedis", "lat": p["lat"], "lon": p["lon"],
             "type": twin["type"] if twin else "pole", "voltage": None, "category": "distribution",
             "material": twin["material"] if twin else None, "design": twin["design"] if twin else None,
-            "operator": "Enedis", "hazard": twin["hazard"] if twin else 1.0, "tagged": bool(twin and twin["tagged"]),
+            "operator": "Enedis", "hazard": twin["hazard"] if twin else 1.0,
+            "hazard_why": twin.get("hazard_why", "") if twin else "", "tagged": bool(twin and twin["tagged"]),
         })
     for a, xy in zip(osm_pylons, osm_xy):
         if all_tree is not None and np.isfinite(all_tree.query(xy, distance_upper_bound=config.POLE_MATCH_M)[0]):

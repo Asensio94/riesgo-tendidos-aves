@@ -140,7 +140,8 @@ def _card(folder, lang):
             f"<li>{escape(i18n.element_type(r.type, lang))} · {r.risk_max:.0f} · "
             f"{escape(i18n.month_label_from_canonical(r.peak_month, lang))} · "
             f"{escape(i18n.species_list(r.species, lang))[:70]} "
-            f"· {_source_link(r, lang)}</li>"
+            f"· {_source_link(r, lang)}"
+            f"<ul class='why'>{''.join(f'<li>{escape(x)}</li>' for x in i18n.explain(r, lang))}</ul></li>"
             for r in df.drop_duplicates(subset=["type", "risk_max"]).head(5).itertuples())
         breakdown = ", ".join(f"{i18n.num(v, lang)} {i18n.element_type_plural(k, lang)}" for k, v in counts.items())
         top = (f"<p class='meta'>{escape(i18n.t(lang, 'regions_scored', n=i18n.num(scored, lang), breakdown=breakdown))}"
@@ -173,6 +174,8 @@ main h2{font:700 24px/1.1 var(--font-title);text-transform:uppercase;letter-spac
 main h2.country{font-size:30px;margin-top:1.4em;color:var(--accent)}
 .meta{color:var(--muted);margin:.2em 0;font-size:14.5px}
 main ol{font-size:14.5px}
+main ol>li{margin-bottom:.5em}
+ul.why{color:var(--muted);font-size:13.5px;margin:.15em 0 0;padding-left:1.2em}
 section.region{border-top:1px solid var(--line);padding-top:.4em}
 .method code{font-family:var(--font-data);font-size:.9em}
 """

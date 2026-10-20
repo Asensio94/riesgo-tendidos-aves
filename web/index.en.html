@@ -496,7 +496,9 @@ turbine_collision[s,m] = P[s,m] · w_col_aer[s] · n_wind_turbines · (1 + ridge
     <li><b>Scaling and ranking</b><span>Each index is rescaled so that the region's 99th percentile equals 100, without clipping
       the maxima. Each pylon takes the electrocution index of its cell multiplied by its hazard rating; each segment, the
       mean along its route; each wind turbine, that of its cell. The peak month and the three species contributing most
-      are stored.</span></li>
+      are stored, with their share. Each element explains its index factor by factor: how many birds its cell has that
+      month compared with the rest of the region, how much line or how many pylons the cell holds, the terrain and, for
+      pylons, which tags set their hazard.</span></li>
     <li><b>Publish and repeat</b><span>Interactive map with layers by month, mechanism and species; report; CSV and GeoJSON of the
       ranking; 12-band GeoTIFF for QGIS. An automated process recomputes everything on the 2nd of each month with the new records.</span></li>
   </ol>

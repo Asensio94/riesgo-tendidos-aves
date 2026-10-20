@@ -496,7 +496,9 @@ colisión_aerogen[s,m] = P[s,m] · w_col_aer[s] · nº_aerogeneradores · (1 + c
     <li><b>Escala y ranking</b><span>Cada índice se reescala para que el percentil 99 de la región valga 100, sin recortar
       los máximos. Cada apoyo toma el índice de electrocución de su celda multiplicado por su peligrosidad; cada tramo, la
       media a lo largo de su recorrido; cada aerogenerador, el de su celda. Se guarda el mes pico y las tres especies que más
-      aportan.</span></li>
+      aportan, con su peso. Cada elemento explica su índice factor a factor: cuántas aves hay en su celda y mes
+      comparado con el resto de la región, cuánto tendido o cuántos apoyos hay en la celda, el relieve y, en los apoyos,
+      qué etiquetas fijan su peligrosidad.</span></li>
     <li><b>Publicar y repetir</b><span>Mapa interactivo con capas por mes, mecanismo y especie; informe; CSV y GeoJSON del
       ranking; GeoTIFF de 12 bandas para QGIS. Un proceso automático recalcula todo el día 2 de cada mes con las citas nuevas.</span></li>
   </ol>
