@@ -64,14 +64,35 @@ def test_coverage_is_every_site_around_the_modelled_elements():
     doc = _doc()
     assert {k: doc[k] for k in ("source", "version", "generated")} == {
         "source": "riesgo-tendidos-aves", "version": 2, "generated": "2026-10-13T07:02Z"}
-    assert doc["coverage"] == {
+    assert doc["coverage"] == {"ES": {
         "label": "Cantabria y el Estrecho", "sites": ["ES1", "ES2", "ES3"],  # ES9 lies outside both regions
-        "note": S.NOTE}
+        "note": S.NOTE["ES"]}}
 
 
-def test_coverage_label_names_the_regions_in_spanish():
+def test_each_country_has_its_own_coverage_and_titles_in_its_language():
+    natura = {"type": "FeatureCollection", "features": NATURA["features"] + [
+        {"type": "Feature", "properties": {"codigo": code, "nombre": code, "tipo": "ZPS"}, "geometry": mapping(g)}
+        for code, g in [("FR1", box(20, 20, 21, 21)), ("ES8", box(21.5, 21.5, 22, 22))]]}
+    # La Crau: its top tenth (the turbine and the pylon) falls in FR1; ES8 lies in its bounding box, but a French
+    # region does not watch a Spanish site.
+    crau = [_row(20.5, 20.5, 50, 5000, "turbine"), _row(20.6, 20.6, 49, 4900)] + [_row(22, 22, i, 300 + i)
+                                                                                for i in range(18)]
+    regions = {"cantabria": (CANTABRIA, "2026-10-01"), "crau": (crau, "2026-10-03")}
+    doc = S.build(regions, S.site_shapes(natura), NOW)
+    assert doc["coverage"] == {
+        "ES": {"label": "Cantabria", "sites": ["ES1", "ES2"], "note": S.NOTE["ES"]},
+        "FR": {"label": "La Crau", "sites": ["FR1"], "note": S.NOTE["FR"]}}
+    fr = next(s for s in doc["signals"] if s["country"] == "FR")
+    assert fr["id"] == "crau-FR1" and fr["value"]["amount"] == 2
+    assert fr["title"] == "1 éolienne et 1 pylône à risque élevé pour les oiseaux dans le site"
+    assert fr["url"].endswith("/crau/sites/FR1.fr.html")
+
+
+def test_coverage_label_names_the_regions_in_their_language():
     assert S.coverage_label(["estrecho"]) == "El Estrecho"
     assert S.coverage_label(["monfrague", "estrecho", "cantabria"]) == "Cantabria, el Estrecho y Monfragüe"
+    assert S.coverage_label(["crau", "camargue"], "fr") == "La Camargue et la Crau"
+    assert S.elements(Counter(pylon=40, line=1, substation=2), "fr") == "40 pylônes, 1 tronçon de ligne et 2 autres éléments"
 
 
 def test_point_lies_inside_the_site_and_never_on_an_element():

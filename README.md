@@ -31,6 +31,8 @@ This file has a Spanish counterpart in [README.es.md](README.es.md).
 9. `site.py`: regions pages `output/regions.<lang>.html`, legacy redirects and the copy of `web/` (the landing page).
 10. `signals.py`: `output/signals.json` for [Estado de las IBA](https://asensio94.github.io/estado-iba/): per region and
    Natura 2000 site, the number of elements in the region's top 10 % of `risk_max` (counts only, never where they are).
+   Version 2 of the common format: the coverage goes by country (the regions modelled in Spain and in France, and the
+   sites of that country around them), and each signal's title is in its country's language.
 
 Everything is cached under `data/cache/`.
 
