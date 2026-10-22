@@ -179,6 +179,7 @@ UI = {
         "method_limits": "Límites",
         "principle": "Datos públicos, reglas a la vista y cada cifra enlazada a su fuente. Indicios, no veredictos.",
         "siblings_label": "Proyectos hermanos",
+        "hub_label": "← Terra Aperta: todos los proyectos",
         "footer_sources": "Datos: © colaboradores de <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> "
                           "(ODbL) · <a href=\"https://www.gbif.org/\">GBIF</a> y eBird (según la licencia de cada "
                           "dataset) · <a href=\"https://datarepository.movebank.org/\">Movebank Data Repository</a> "
@@ -306,6 +307,7 @@ UI = {
         "method_limits": "Limits",
         "principle": "Public data, rules in plain sight and every figure linked to its source. Leads, not verdicts.",
         "siblings_label": "Sibling projects",
+        "hub_label": "← Terra Aperta: all projects",
         "footer_sources": "Data: © <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors "
                           "(ODbL) · <a href=\"https://www.gbif.org/\">GBIF</a> and eBird (under each dataset's "
                           "licence) · <a href=\"https://datarepository.movebank.org/\">Movebank Data Repository</a> "
@@ -444,6 +446,7 @@ UI["fr"] = {
     "principle": "Données publiques, règles visibles et chaque chiffre relié à sa source. Des indices, pas des "
                  "verdicts.",
     "siblings_label": "Projets frères",
+    "hub_label": "← Terra Aperta : tous les projets",
     "footer_sources": "Données : © contributeurs d’<a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap"
                       "</a> (ODbL) · <a href=\"https://data.enedis.fr/\">Enedis Open Data</a> (lignes HTA : Licence "
                       "Ouverte 2.0 ; supports : ODbL) · IGN Admin Express (Licence Ouverte 2.0) · Natura 2000 : Agence "

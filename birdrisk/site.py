@@ -27,20 +27,23 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;family=IBM+Plex+Mono:wght@400;500'
          '&amp;display=swap">')
 SELF_SLUG = "riesgo-tendidos-aves"
-# Sibling projects in the order of the style guide; the names are proper names and stay in Spanish.
+# Sibling projects in the order of the Terra Aperta menu: (slug, Spanish name, French name, French page
+# relative to the project root, "" when the project has no French page of its own).
 SIBLINGS = [
-    ("observatorio-alegaciones", "Observatorio de alegaciones"),
-    ("vigia-incendios", "Vigía de incendios"),
-    ("centinela-natura", "Centinela Natura"),
-    ("vigilancia-humedales", "Vigilancia de humedales"),
-    ("sub-nocte", "Sub Nocte"),
-    ("riesgo-tendidos-aves", "Riesgo de tendidos para aves"),
-    ("grafo-promotores", "Grafo de promotores"),
-    ("cartera-cotizadas", "Cartera de las cotizadas"),
-    ("cuaderno-campo", "Cuaderno de campo"),
-    ("caudal-ecologico", "Caudal ecológico"),
-    ("estado-iba", "Estado de las IBA"),
+    ("sub-nocte", "Sub Nocte", "Sub Nocte", ""),
+    ("vigia-incendios", "Vigía de incendios", "Vigie des incendies", "fr/"),
+    ("centinela-natura", "Centinela Natura", "Centinela Natura", "fr/"),
+    ("estado-iba", "Estado de las IBA", "État des IBA", "fr/"),
+    ("riesgo-tendidos-aves", "Riesgo de tendidos para aves", "Risque des lignes pour les oiseaux", "regions.fr.html"),
+    ("observatorio-alegaciones", "Observatorio de alegaciones", "Observatoire des consultations", ""),
+    ("grafo-promotores", "Grafo de promotores", "Graphe des porteurs de projet", ""),
+    ("vigilancia-humedales", "Vigilancia de humedales", "Veille des zones humides", "france.html"),
+    ("caudal-ecologico", "Caudal ecológico", "Débit écologique", ""),
+    ("acuiferos-francia", "Acuíferos de Francia", "Nappes de France", ""),
+    ("depuracion-y-bano", "Depuración y baño", "Épuration et baignade", "fr/"),
+    ("zona-inundable", "Construir en zona inundable", "Construire en zone inondable", ""),
 ]
+HUB_URL = {"es": "https://asensio94.github.io/terra-aperta/", "fr": "https://asensio94.github.io/terra-aperta/fr/"}
 
 REDIRECT = """<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta http-equiv="refresh" content="0; url={target}"><link rel="canonical" href="{target}">
@@ -62,16 +65,23 @@ def page_head(lang, title, own_css):
 
 
 def site_footer(lang, country=None):
-    """Common footer: the shared principle, this project's sources and licences (those of `country`), and the
-    sibling projects."""
-    current = ' aria-current="page"'
-    items = "\n".join(
-        f"    <li{current if slug == SELF_SLUG else ''}>"
-        f'<a href="https://asensio94.github.io/{slug}/">{escape(name)}</a></li>'
-        for slug, name in SIBLINGS)
+    """Common footer: the shared principle, this project's sources and licences (those of `country`), the way back
+    to Terra Aperta and the sibling projects (this one as plain text). French pages link the French page of each
+    project where there is one."""
+    french = lang == "fr"
+
+    def item(slug, name_es, name_fr, fr_path):
+        name = escape(name_fr if french else name_es)
+        if slug == SELF_SLUG:
+            return f'    <li aria-current="page">{name}</li>'
+        return f'    <li><a href="https://asensio94.github.io/{slug}/{fr_path if french else ""}">{name}</a></li>'
+
+    items = "\n".join(item(*project) for project in SIBLINGS)
+    hub = HUB_URL["fr" if french else "es"]
     return f"""<footer class="site-footer">
   <p class="principle">{escape(i18n.t(lang, 'principle'))}</p>
   <p>{i18n.t(lang, 'footer_sources', country=country, repo=config.REPO_URL)}</p>
+  <p class="hub"><a href="{hub}">{escape(i18n.t(lang, 'hub_label'))}</a></p>
   <nav aria-label="{escape(i18n.t(lang, 'siblings_label'))}"><ul class="siblings">
 {items}
   </ul></nav>

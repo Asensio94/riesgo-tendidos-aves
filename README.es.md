@@ -220,14 +220,17 @@ mezcla con la frecuencia GBIF (70/30, `EBIRDST_WEIGHT`). La especie pasa a confi
 Licencias de los datos: OpenStreetMap © sus colaboradores (ODbL); Enedis e IGN, Licence Ouverte 2.0; GBIF y eBird según la licencia de cada dataset
 (CC0 / CC BY / CC BY-NC); Movebank Data Repository CC0/CC BY. El código se publica con licencia MIT ([LICENSE](LICENSE)).
 
-Forma parte de un conjunto de proyectos hermanos:
-[Observatorio de alegaciones](https://asensio94.github.io/observatorio-alegaciones/) ·
-[Vigía de incendios](https://asensio94.github.io/vigia-incendios/) ·
-[Centinela Natura](https://asensio94.github.io/centinela-natura/) ·
-[Vigilancia de humedales](https://asensio94.github.io/vigilancia-humedales/) ·
-[Sub Nocte](https://asensio94.github.io/sub-nocte/) ·
-[Grafo de promotores](https://asensio94.github.io/grafo-promotores/) ·
-[Cartera de las cotizadas](https://asensio94.github.io/cartera-cotizadas/) ·
-[Cuaderno de campo](https://asensio94.github.io/cuaderno-campo/) ·
-[Caudal ecológico](https://asensio94.github.io/caudal-ecologico/) ·
-[Estado de las IBA](https://asensio94.github.io/estado-iba/).
+Forma parte de [Terra Aperta](https://asensio94.github.io/terra-aperta/), un conjunto de proyectos hermanos de
+datos abiertos sobre naturaleza:
+[Sub Nocte](https://github.com/Asensio94/sub-nocte) ·
+[Vigía de incendios](https://github.com/Asensio94/vigia-incendios) ·
+[Centinela Natura](https://github.com/Asensio94/centinela-natura) ·
+[Estado de las IBA](https://github.com/Asensio94/estado-iba) ·
+[Riesgo de tendidos para aves](https://github.com/Asensio94/riesgo-tendidos-aves) ·
+[Observatorio de alegaciones](https://github.com/Asensio94/observatorio-alegaciones) ·
+[Grafo de promotores](https://github.com/Asensio94/grafo-promotores) ·
+[Vigilancia de humedales](https://github.com/Asensio94/vigilancia-humedales) ·
+[Caudal ecológico](https://github.com/Asensio94/caudal-ecologico) ·
+[Acuíferos de Francia](https://github.com/Asensio94/acuiferos-francia) ·
+[Depuración y baño](https://github.com/Asensio94/depuracion-y-bano) ·
+[Construir en zona inundable](https://github.com/Asensio94/zona-inundable).
