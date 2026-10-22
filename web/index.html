@@ -184,14 +184,15 @@ pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14p
   <h1><svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="34" cy="31" r="19"/><path d="M19 40 7 50.5l3.5 4L25 46z"/><path d="M52 22l8 2.5-8 2.5z"/></g><path class="logo-breast" d="M34 12a19 19 0 0 1 15 30.8C42 41 37 34 37 26c0-6 1.5-10.5 4-12.6A19 19 0 0 0 34 12z"/><g fill="#221d1a"><circle cx="45" cy="21.5" r="2.1"/></g><path d="M31 49.5V60m7-11v11m-10.5.2h6m1.5 0h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Riesgo de <span>tendidos</span> para aves</h1>
   <p class="lede">Un mapa dinámico de riesgo de colisión y electrocución de aves: cruza los tendidos eléctricos y aerogeneradores de OpenStreetMap con dónde y cuándo están las aves (citas de eBird y GBIF, seguimiento GPS de Movebank) y con el relieve para decidir qué apoyo, tramo o aerogenerador corregir primero.</p>
   <p class="note">Produce un índice por celda de 500 m, especie y mes, y un ranking de los apoyos, tramos y aerogeneradores que más urge revisar. Se recalcula cada mes. Todo el código y los datos de salida son públicos.</p>
+  <p class="note">Cifras de octubre de 2026. Los 49.105 elementos puntuados de la página de regiones son la suma de 43.172 apoyos, 4.954 tramos y 979 aerogeneradores. OpenStreetMap tiene 49.003 apoyos en las dos regiones, pero los de transporte (más de 66 kV) no se puntúan uno a uno: no electrocutan aves (sus conductores están muy separados) y su riesgo de colisión ya lo lleva el tramo de línea.</p>
   <div class="btns">
       <a class="btn" href="regions.es.html">Ver los mapas y rankings</a>
       <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Código y método (GitHub)</a>
     </div>
   <div class="figures">
     <div><b>2</b><span>regiones piloto: Estrecho de Gibraltar y Cantabria</span></div>
-    <div><b>49.000</b><span>apoyos eléctricos evaluados</span></div>
-    <div><b>4.950</b><span>tramos de línea · 979 aerogeneradores</span></div>
+    <div><b>43.172</b><span>apoyos de distribución puntuados (de 49.003 en OpenStreetMap)</span></div>
+    <div><b>4.954</b><span>tramos de línea · 979 aerogeneradores</span></div>
     <div><b>265.000</b><span>citas de 21 especies sensibles (2010-2026)</span></div>
     <div><b>361.000</b><span>posiciones GPS de milano negro y cigüeña blanca</span></div>
     <div><b>12</b><span>mapas mensuales por especie y mecanismo</span></div>
@@ -327,7 +328,7 @@ pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14p
 <section class="cap" id="resultados"><div class="wrap">
   <h2><span class="num">4</span>Resultados hasta ahora</h2>
   <p class="sub">Dos pilotos con perfil opuesto: el Estrecho, con pocos apoyos pero un cuello de botella migratorio y
-  muchísimo GPS; Cantabria, con 46.000 apoyos, ningún GPS y una avifauna de montaña.</p>
+  muchísimo GPS; Cantabria, con 41.415 apoyos de distribución puntuados (46.300 en OpenStreetMap), ningún GPS y una avifauna de montaña.</p>
   <figure>
     <img src="img/cantabria.png" alt="Índice anual de riesgo en Cantabria: celdas coloreadas de amarillo a granate sobre un mapa de relieve sombreado con las líneas eléctricas en gris">
     <div class="legend"><span><i class="ramp"></i> índice anual (máximo mensual), de bajo a alto; el fondo es el relieve sombreado (verde llano, pardo montaña, azul mar)</span>

@@ -266,7 +266,7 @@ def report(path, map_rel, region_label, bbox, infra_summary, species_info, table
 <div class="wrap">{_table_html(table, lang)}</div>
 
 <h2>{escape(tt('h2_ranking', top=top))}</h2>
-<p>{escape(tt('ranking_why'))}</p>
+<p>{escape(tt('ranking_why'))} {escape(tt('ranking_where'))}</p>
 <div class="wrap"><table><thead><tr><th>{escape(tt('th_rank'))}</th>
 <th>{escape(tt('th_type'))}</th><th>{escape(tt('th_mechanism'))}</th>
 <th>{escape(tt('th_risk_max'))}</th><th>{escape(tt('th_risk_mean'))}</th>

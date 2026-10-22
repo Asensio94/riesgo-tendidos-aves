@@ -183,15 +183,16 @@ pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14p
   <p class="kicker">Projet ouvert · septembre 2026 · version 0.1</p>
   <h1><svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="34" cy="31" r="19"/><path d="M19 40 7 50.5l3.5 4L25 46z"/><path d="M52 22l8 2.5-8 2.5z"/></g><path class="logo-breast" d="M34 12a19 19 0 0 1 15 30.8C42 41 37 34 37 26c0-6 1.5-10.5 4-12.6A19 19 0 0 0 34 12z"/><g fill="#221d1a"><circle cx="45" cy="21.5" r="2.1"/></g><path d="M31 49.5V60m7-11v11m-10.5.2h6m1.5 0h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Risque des <span>lignes</span> pour les oiseaux</h1>
   <p class="lede">Une carte dynamique du risque de collision et d’électrocution des oiseaux : elle croise les lignes électriques et les éoliennes (OpenStreetMap et, en France, les données ouvertes d’Enedis) avec les lieux et les périodes où se trouvent les oiseaux (données eBird et GBIF, suivi GPS de Movebank) et avec le relief, pour décider quel poteau, quel tronçon ou quelle éolienne corriger en priorité.</p>
-  <p class="note">Elle produit un indice par maille de 500 m, par espèce et par mois, et un classement des poteaux, tronçons et éoliennes à vérifier en urgence. Le calcul est refait chaque mois. Tout le code et toutes les données produites sont publics. Né en Espagne, le projet s’étend à la France : cinq régions pilotes (la Crau, la Camargue, les Grands Causses, les Pyrénées occidentales et la Champagne humide) forment une première vague, en cours de calcul.</p>
+  <p class="note">Elle produit un indice par maille de 500 m, par espèce et par mois, et un classement des poteaux, tronçons et éoliennes à vérifier en urgence. Le calcul est refait chaque mois. Tout le code et toutes les données produites sont publics. Né en Espagne, le projet s’étend à la France : cinq régions pilotes (la Crau, la Camargue, les Grands Causses, les Pyrénées occidentales et la Champagne humide) forment une première vague, calculée : 67 595 éléments notés en octobre 2026, à voir sur la page des régions.</p>
+  <p class="note">Chiffres d’octobre 2026. En Espagne, les 49 105 éléments notés de la page des régions sont la somme de 43 172 poteaux, 4 954 tronçons et 979 éoliennes. OpenStreetMap compte 49 003 poteaux dans les deux régions espagnoles, mais ceux du réseau de transport (plus de 66 kV) ne sont pas notés un par un : ils n’électrocutent pas les oiseaux (leurs câbles sont très écartés) et leur risque de collision est déjà porté par le tronçon de ligne.</p>
   <div class="btns">
       <a class="btn" href="regions.fr.html">Voir les cartes et les classements</a>
       <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Code et méthode (GitHub)</a>
     </div>
   <div class="figures">
     <div><b>2</b><span>régions pilotes en Espagne : détroit de Gibraltar et Cantabrie</span></div>
-    <div><b>49 000</b><span>poteaux évalués</span></div>
-    <div><b>4 950</b><span>tronçons de ligne · 979 éoliennes</span></div>
+    <div><b>43 172</b><span>poteaux de distribution notés en Espagne (sur 49 003 dans OpenStreetMap)</span></div>
+    <div><b>4 954</b><span>tronçons de ligne · 979 éoliennes en Espagne</span></div>
     <div><b>265 000</b><span>données de 21 espèces sensibles (2010-2026)</span></div>
     <div><b>361 000</b><span>positions GPS de milan noir et de cigogne blanche</span></div>
     <div><b>12</b><span>cartes mensuelles par espèce et par mécanisme</span></div>
@@ -311,7 +312,7 @@ pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14p
       <tr><td><b>OpenStreetMap</b> (Overpass)</td><td>Lignes avec leur tension et leur exploitant, pylônes et poteaux avec leurs attributs (matériau, isolateur, dérivations), éoliennes. En France : les lignes HTB de RTE (qui ne publie plus leur géométrie, retirée « pour raisons de sécurité publique ») et les éoliennes</td>
           <td>Cantabrie : 46 300 poteaux, 4 535 tronçons, 463 éoliennes<br>Détroit : 2 703 poteaux, 414 tronçons, 516 éoliennes</td><td>ODbL</td></tr>
       <tr><td><b>Enedis</b> (opendata.enedis.fr), France uniquement</td><td>Toutes les lignes aériennes HTA (<code>reseau-hta</code>) et la position de tous les poteaux HTA et BT (<code>position-geographique-des-poteaux-hta-et-bt</code>) : un poteau proche d’une ligne HTA est compté comme poteau HTA</td>
-          <td>Première vague française en cours de calcul</td><td>Licence Ouverte 2.0 (lignes) · ODbL (poteaux)</td></tr>
+          <td>Cinq régions françaises : 16 572 tronçons HTA et 30 041 poteaux dans le classement</td><td>Licence Ouverte 2.0 (lignes) · ODbL (poteaux)</td></tr>
       <tr><td><b>GBIF</b>, qui intègre l’<b>eBird Observation Dataset</b></td><td>Données géolocalisées par espèce, mois et année depuis 2010. Les données de <i>tous</i> les oiseaux mesurent l’effort d’observation</td>
           <td>Cantabrie : 1,35 M de données d’oiseaux (effort), dont 101 000 de 18 espèces<br>Détroit : 165 000 données de 16 espèces</td><td>CC0 / CC BY / CC BY-NC selon le jeu de données</td></tr>
       <tr><td><b>Movebank Data Repository</b></td><td>Trajets GPS publiés avec les articles scientifiques : là où volent réellement les individus équipés</td>
@@ -332,8 +333,8 @@ pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14p
 <section class="cap" id="resultados"><div class="wrap">
   <h2><span class="num">4</span>Les résultats à ce jour</h2>
   <p class="sub">Deux régions pilotes espagnoles aux profils opposés : le détroit, avec peu de poteaux mais un goulet migratoire et
-  beaucoup de données GPS ; la Cantabrie, avec 46 000 poteaux, sans GPS et avec une avifaune de montagne. Les cinq régions françaises
-  sont en cours de calcul : il n’y a pas encore de résultats à présenter.</p>
+  beaucoup de données GPS ; la Cantabrie, avec 41 415 poteaux de distribution notés (46 300 dans OpenStreetMap), sans GPS et avec une avifaune de montagne. Les cinq régions françaises
+  sont calculées depuis octobre 2026 (67 595 éléments notés) : leurs cartes et leurs classements sont sur la <a href="regions.fr.html">page des régions</a>.</p>
   <figure>
     <img src="img/cantabria.en.png" alt="Indice de risque annuel en Cantabrie : mailles colorées du jaune au rouge foncé sur un fond de relief ombré, avec les lignes électriques en gris">
     <div class="legend"><span><i class="ramp"></i> indice annuel (maximum mensuel), de faible à élevé ; le fond est un relief ombré (vert : plaine, brun : montagne, bleu : mer)</span>
@@ -467,9 +468,9 @@ pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14p
   </div>
   <div class="cta">
     <h3>État d’avancement et prochaines étapes</h3>
-    <p>Un prototype fonctionnel (version 0.1, septembre 2026) avec deux régions espagnoles, un traitement mensuel automatique et un site public.
-    En cours : la clé eBird Status &amp; Trends et le calcul de la première vague française (Crau, Camargue, Grands Causses, Pyrénées
-    occidentales, Champagne humide). Ensuite : la vérification sur le terrain des premiers poteaux du classement, une région de validation au
+    <p>Un prototype fonctionnel (version 0.1, septembre 2026) avec deux régions espagnoles, un traitement mensuel automatique et un site public ;
+    depuis octobre 2026, la première vague française (Crau, Camargue, Grands Causses, Pyrénées occidentales, Champagne humide) est calculée.
+    En cours : la clé eBird Status &amp; Trends. Ensuite : la vérification sur le terrain des premiers poteaux du classement, une région de validation au
     Pays basque et, en France, la confrontation avec les données de mortalité.</p>
     <div class="btns">
       <a class="btn" href="regions.fr.html">Cartes, classements et téléchargements</a>

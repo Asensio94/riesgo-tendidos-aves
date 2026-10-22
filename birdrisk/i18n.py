@@ -129,6 +129,9 @@ UI = {
         "ranking_why": "La columna «Por qué» desglosa cada índice en los factores del modelo: cuántas aves hay y de qué"
                        " especies, cuánto tendido hay en la celda, el relieve y el tipo de apoyo. Los porcentajes "
                        "comparan con el resto de celdas de la región.",
+        "ranking_where": "Cada elemento se sitúa por sus coordenadas y su enlace a la fuente (OSM o Enedis), no "
+                         "por municipio: ninguna de las dos fuentes trae el municipio y el ranking aún no se "
+                         "cruza con los límites municipales.",
         "th_category": "Categoría",
         "th_operator": "Operador",
         "th_osm": "OSM",
@@ -256,6 +259,9 @@ UI = {
         "ranking_why": "The “Why” column breaks each index down into the factors of the model: how many birds and of "
                        "which species, how much line there is in the cell, the terrain and the type of pylon. "
                        "Percentages compare with the other cells of the region.",
+        "ranking_where": "Each element is located by its coordinates and its link to the source (OSM or Enedis), "
+                         "not by municipality: neither source carries it and the ranking is not yet crossed with "
+                         "municipal boundaries.",
         "th_category": "Category",
         "th_operator": "Operator",
         "th_osm": "OSM",
@@ -388,6 +394,9 @@ UI["fr"] = {
     "ranking_why": "La colonne « Pourquoi » décompose chaque indice selon les facteurs du modèle : combien d’oiseaux et"
                    " de quelles espèces, combien de réseau dans la maille, le relief et le type de support. Les "
                    "pourcentages comparent avec les autres mailles de la région.",
+    "ranking_where": "Chaque élément est situé par ses coordonnées et son lien vers la source (OSM ou Enedis), "
+                     "pas par commune : aucune des deux sources ne la donne et le classement n’est pas encore "
+                     "croisé avec les limites communales.",
     "th_category": "Catégorie",
     "th_operator": "Exploitant",
     "th_osm": "Source",
@@ -913,8 +922,10 @@ EXPLAIN = {
                            "ladera.",
         "hazard": "Apoyo: {reasons}; peligrosidad ×{f}.",
         "hazard_none": "Apoyo sin datos de material ni armado: se le da peligrosidad media (×1).",
-        "index_high": "Índice {v}: {ratio} veces el umbral del 1 % de celdas con más riesgo de la región.",
-        "index": "Índice {v} de 100 (100 = umbral del 1 % de celdas con más riesgo de la región).",
+        "index_high": "Índice {v}: {ratio} veces el umbral de riesgo alto (índice 100: el percentil 99 de las "
+                      "celdas de la región con este tipo de infraestructura; solo el 1 % lo supera).",
+        "index": "Índice {v} de 100 (100 = percentil 99 de las celdas de la región con este tipo de "
+                 "infraestructura; solo el 1 % lo supera).",
     },
     "en": {
         "level": ((95, "very high"), (75, "high"), (40, "medium"), (0, "low")),
@@ -930,8 +941,10 @@ EXPLAIN = {
         "terrain_col_aer": "Ridge: multiplies the risk by {f}; soaring birds ride the slope updraughts.",
         "hazard": "Pylon: {reasons}; hazard ×{f}.",
         "hazard_none": "Pylon with no material or cross-arm data: given an average hazard (×1).",
-        "index_high": "Index {v}: {ratio} times the threshold of the region's riskiest 1% of cells.",
-        "index": "Index {v} out of 100 (100 = threshold of the region's riskiest 1% of cells).",
+        "index_high": "Index {v}: {ratio} times the high-risk threshold (index 100: the 99th percentile of the "
+                      "region's cells with this kind of infrastructure; only 1% are above it).",
+        "index": "Index {v} out of 100 (100 = the 99th percentile of the region's cells with this kind of "
+                 "infrastructure; only 1% are above it).",
     },
     "fr": {
         "level": ((95, "très forte"), (75, "forte"), (40, "moyenne"), (0, "faible")),
@@ -948,8 +961,10 @@ EXPLAIN = {
         "terrain_col_aer": "Crête : multiplie le risque par {f} ; les planeurs y profitent des ascendances.",
         "hazard": "Support : {reasons} ; dangerosité ×{f}.",
         "hazard_none": "Support sans données de matériau ni d’armement : dangerosité moyenne (×1).",
-        "index_high": "Indice {v} : {ratio} fois le seuil des 1 % de mailles les plus à risque de la région.",
-        "index": "Indice {v} sur 100 (100 = seuil des 1 % de mailles les plus à risque de la région).",
+        "index_high": "Indice {v} : {ratio} fois le seuil de risque élevé (indice 100 : le 99e centile des "
+                      "mailles de la région avec ce type de réseau ; seul 1 % le dépasse).",
+        "index": "Indice {v} sur 100 (100 = 99e centile des mailles de la région avec ce type de réseau ; seul "
+                 "1 % le dépasse).",
     },
 }
 

@@ -63,4 +63,6 @@ def test_the_explanation_reads_the_same_from_pandas_and_from_csv_text():
 
 def test_old_rankings_only_get_the_sentence_on_the_index():
     old = SimpleNamespace(type="line", mechanism="line_collision", risk_max=80.0, peak_month="Jul", species="x")
-    assert i18n.explain(old, "en") == ["Index 80 out of 100 (100 = threshold of the region's riskiest 1% of cells)."]
+    assert i18n.explain(old, "en") == [
+        "Index 80 out of 100 (100 = the 99th percentile of the region's cells with this kind of infrastructure; "
+        "only 1% are above it)."]
