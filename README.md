@@ -31,6 +31,8 @@ This file has a Spanish counterpart in [README.es.md](README.es.md).
 9. `site.py`: regions pages `output/regions.<lang>.html`, legacy redirects and the copy of `web/` (the landing page).
 10. `signals.py`: `output/signals.json` for [Estado de las IBA](https://asensio94.github.io/estado-iba/): per region and
    Natura 2000 site, the number of elements in the region's top 10 % of `risk_max` (counts only, never where they are).
+   Version 2 of the common format: the coverage goes by country (the regions modelled in Spain and in France, and the
+   sites of that country around them), and each signal's title is in its country's language.
 
 Everything is cached under `data/cache/`.
 
@@ -64,6 +66,25 @@ col_aer[s,m]  = P[s,m] · w_col_aer[s] · n_turbines · (1 + ridge)
   adjustable starting point.
 - Each index is rescaled to 0-100 (99th percentile of the region). The aggregate sums species weighted by status.
 - The asset ranking takes the index of the cell holding each pylon/wind turbine, and the mean along each line segment.
+
+## France
+
+Five French regions (wave 1): la Crau, la Camargue, les Grands Causses (vultures), the French Pyrenees and Champagne
+humide (cranes). The model is the same; the infrastructure sources, the threshold and the status weights change.
+Their pages are published in French and English (`map.fr.html`, `report.fr.html`, `regions.fr.html`).
+
+- **Distribution:** Enedis' [HTA network](https://data.enedis.fr/datasets/reseau-hta) and the position of its
+  [poles](https://data.enedis.fr/datasets/position-geographique-des-poteaux-hta-et-bt). A pole within 10 m of an HTA line
+  is an HTA pylon; the rest (low voltage) are dropped. An OSM distribution line running within 25 m of an HTA line for at
+  least half its length is the same line and is dropped; an OSM pylon within 15 m of an Enedis pole is the same pylon and
+  hands it its tags (material, design), which set its hazard. `france.py` does the merge.
+- **Transmission and wind turbines:** OSM. RTE publishes its lines without geometry (withdrawn for public security).
+- **Electrocution threshold:** ≤50 kV (HTA ends at 50 kV; 63 kV is already HTB), against ≤66 kV in Spain.
+- **Status:** Red List of the birds of France (IUCN France, 2016), breeding birds except crane and white-tailed eagle (wintering).
+- **Territory:** everything is clipped to the French departments (IGN Admin Express): Andorra and Spain stay out of the Pyrenees.
+- **Natura 2000:** FR sites from the European Environment Agency, with their SITECODE.
+- **Left out:** low voltage, underground lines, local distribution companies (ELD) except what OSM has, and RTE geometry
+  beyond OSM. Validation against French mortality data is pending.
 
 ## Validation
 
@@ -189,6 +210,9 @@ Neither `output/` nor `data/cache/` is committed.
 | AWS Terrain Tiles (terrarium) | ~30 m elevation → slope and topographic position | public, no key |
 | Movebank Data Repository | published GPS datasets (CC0/CC-BY), search by species and CSV download | public, no key |
 | Movebank API | public studies (`public/json`) or account-based (`direct-read`) | optional |
+| Enedis open data (`reseau-hta`, `position-geographique-des-poteaux-hta-et-bt`) | HTA network and poles in France | public, no key (Licence Ouverte) |
+| IGN Admin Express (Géoplateforme WFS) | departments to clip to France | public, no key |
+| EEA Natura 2000 (ArcGIS REST) | French sites for `signals.json` | public, no key |
 | Natura 2000 sites ([layer of Vigía de incendios](https://asensio94.github.io/vigia-incendios/natura.geojson), ~300 m) | high-risk elements counted per site for `signals.json` | public, no key |
 
 **eBird Status & Trends** (modelled weekly abundance at 3 km) is the best abundance layer available, but it requires
@@ -198,7 +222,7 @@ into `data/ebirdst/<Genus_species>/`, and `birdrisk/ebirdst.py` reprojects them 
 months and blends them with the GBIF frequency (70/30, `EBIRDST_WEIGHT`). That species then gets confidence 1. With no files
 present, nothing changes.
 
-Licences of the data: OpenStreetMap © its contributors (ODbL); GBIF and eBird under the licence of each dataset
+Licences of the data: OpenStreetMap © its contributors (ODbL); Enedis and IGN, Licence Ouverte 2.0; GBIF and eBird under the licence of each dataset
 (CC0 / CC BY / CC BY-NC); Movebank Data Repository CC0/CC BY. The code is released under the MIT licence ([LICENSE](LICENSE)).
 
 Part of a set of sibling projects:

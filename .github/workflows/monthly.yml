@@ -20,7 +20,7 @@ concurrency:
 jobs:
   compute:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,9 +36,13 @@ jobs:
           restore-keys: cache-
       - name: Compute the regions
         run: |
-          # if one region fails (Overpass/GBIF down) the others and the project website are still published
+          # if one region fails (Overpass/GBIF/Enedis down) the others and the project website are still published;
+          # each French region is capped so that a slow one cannot eat the time of the rest
           for region in estrecho cantabria; do
             python -m birdrisk.cli run --region "$region" || echo "::warning::region $region failed"
+          done
+          for region in causses crau camargue pyrenees champagne; do
+            timeout 40m python -m birdrisk.cli run --region "$region" || echo "::warning::region $region failed"
           done
           python -m birdrisk.cli index
       - name: Save the download cache

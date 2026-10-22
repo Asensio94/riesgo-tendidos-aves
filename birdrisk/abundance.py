@@ -46,8 +46,16 @@ def species_key(name):
     return keys[name]
 
 
+def _deg(v):
+    """A coordinate as GBIF accepts it. Tiling by float steps leaves ~1e-15 where a tile edge is 0 (the Greenwich
+    meridian in the Pyrenees); GBIF answers 400 to scientific notation. Other values are written as before, so the
+    cached queries keep their keys."""
+    s = str(v)
+    return str(round(float(v), 6)) if "e" in s.lower() else s
+
+
 def _bbox_params(bbox):
-    lat_min, lon_min, lat_max, lon_max = bbox
+    lat_min, lon_min, lat_max, lon_max = (_deg(v) for v in bbox)
     return {"decimalLatitude": f"{lat_min},{lat_max}", "decimalLongitude": f"{lon_min},{lon_max}",
             "hasCoordinate": "true", "hasGeospatialIssue": "false",
             "year": f"{config.GBIF_YEAR_FROM},2100"}

@@ -64,6 +64,25 @@ col_aer[s,m]  = P[s,m] · w_col_aer[s] · n_aerogen · (1 + cresta)
 - Cada índice se reescala a 0-100 (percentil 99 de la región). El agregado suma especies ponderadas por estatus.
 - El ranking de elementos toma el índice de la celda de cada apoyo/aerogenerador y la media a lo largo de cada tramo.
 
+## Francia
+
+Cinco regiones francesas (ola 1): la Crau, la Camarga, los Grands Causses (buitres), el Pirineo francés y la Champaña
+húmeda (grullas). El modelo es el mismo; cambian las fuentes de infraestructura, el umbral y los pesos de estatus.
+Sus páginas se publican en francés e inglés (`map.fr.html`, `report.fr.html`, `regions.fr.html`).
+
+- **Distribución:** red HTA de [Enedis](https://data.enedis.fr/datasets/reseau-hta) y posición de sus
+  [postes](https://data.enedis.fr/datasets/position-geographique-des-poteaux-hta-et-bt). Un poste a ≤10 m de una línea
+  HTA cuenta como apoyo HTA; el resto (BT) se descarta. Una línea de distribución de OSM que corre a ≤25 m de una HTA en
+  al menos la mitad de su longitud es la misma línea y se descarta; un apoyo de OSM a ≤15 m de un poste Enedis es el mismo
+  apoyo y le pasa sus etiquetas (material, armado), que fijan su peligrosidad. `france.py` hace la fusión.
+- **Transporte y aerogeneradores:** OSM. RTE publica sus líneas sin geometría (retirada por seguridad pública).
+- **Umbral de electrocución:** ≤50 kV (la HTA acaba en 50 kV; 63 kV ya es HTB), frente a ≤66 kV en España.
+- **Estatus:** Lista Roja de las aves de Francia (UICN Francia, 2016), nidificantes salvo grulla y pigargo (invernantes).
+- **Territorio:** todo se recorta a los departamentos franceses (IGN Admin Express): Andorra y España no entran en el Pirineo.
+- **Natura 2000:** espacios FR de la Agencia Europea de Medio Ambiente, con su SITECODE.
+- **Fuera:** baja tensión, líneas subterráneas, distribuidoras locales (ELD) salvo lo que haya en OSM, y la geometría de
+  RTE más allá de OSM. Falta validar con datos franceses de mortalidad.
+
 ## Contraste
 
 Pendiente. El ranking aún no se ha contrastado con mortalidad real.
@@ -187,6 +206,9 @@ Ni `output/` ni `data/cache/` se suben al repositorio.
 | AWS Terrain Tiles (terrarium) | elevación ~30 m → pendiente y posición topográfica | público, sin clave |
 | Movebank Data Repository | datasets GPS publicados (CC0/CC-BY), búsqueda por especie y descarga de CSV | público, sin clave |
 | Movebank API | estudios públicos (`public/json`) o con cuenta (`direct-read`) | opcional |
+| Enedis open data (`reseau-hta`, `position-geographique-des-poteaux-hta-et-bt`) | red HTA y postes en Francia | público, sin clave (Licence Ouverte) |
+| IGN Admin Express (WFS de la Géoplateforme) | departamentos para recortar a Francia | público, sin clave |
+| Natura 2000 de la EEA (ArcGIS REST) | espacios franceses para `signals.json` | público, sin clave |
 | Espacios Natura 2000 ([capa de Vigía de incendios](https://asensio94.github.io/vigia-incendios/natura.geojson), ~300 m) | elementos de riesgo alto contados por espacio para `signals.json` | público, sin clave |
 
 **eBird Status & Trends** (abundancia semanal modelada a 3 km) es la mejor capa de abundancia, pero exige solicitar
@@ -195,7 +217,7 @@ una clave y se distribuye vía R (`ebirdst`). Ya está integrado como opción: d
 `data/ebirdst/<Genus_species>/` y `birdrisk/ebirdst.py` los reproyecta a la malla, agrega las 52 semanas en meses y los
 mezcla con la frecuencia GBIF (70/30, `EBIRDST_WEIGHT`). La especie pasa a confianza 1. Sin ficheros, no cambia nada.
 
-Licencias de los datos: OpenStreetMap © sus colaboradores (ODbL); GBIF y eBird según la licencia de cada dataset
+Licencias de los datos: OpenStreetMap © sus colaboradores (ODbL); Enedis e IGN, Licence Ouverte 2.0; GBIF y eBird según la licencia de cada dataset
 (CC0 / CC BY / CC BY-NC); Movebank Data Repository CC0/CC BY. El código se publica con licencia MIT ([LICENSE](LICENSE)).
 
 Forma parte de un conjunto de proyectos hermanos:

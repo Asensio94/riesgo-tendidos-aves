@@ -2,7 +2,7 @@
 
 For each species s and month m, on every grid cell:
 
-  electro[s,m] = P[s,m] * w_electro[s] * pylons_eq                        (distribution pylons, <=66 kV)
+  electro[s,m] = P[s,m] * w_electro[s] * pylons_eq             (distribution pylons: <=66 kV ES, <=50 kV FR)
   col_lin[s,m] = P[s,m] * w_col_lin[s] * line_km * (1 + relief)           (all conductors)
   col_aer[s,m] = P[s,m] * w_col_aer[s] * n_turbines * (1 + ridge)
 
@@ -55,8 +55,12 @@ def compute(presences, expo, factors, species_cfg, confidence=None):
     confidence = confidence or {}
     by_species = {}
     aggregate = {k: np.zeros_like(next(iter(presences.values()))) for k in MECHANISMS}
+    # weight of each species in each mechanism (status x reliability x sensitivity): with the presences, it says
+    # which species make a cell's index and by how much (see rank_elements)
+    weight = {}
     for sp, P in presences.items():
         cfg = species_cfg[sp]
+        weight[sp] = {k: cfg["status"] * confidence.get(sp, 1.0) * cfg[k] for k in MECHANISMS}
         raw = {
             "electro": P * cfg["electro"] * base["pylons_eq"][None],
             "col_lin": P * cfg["col_lin"] * base["line_km"][None] * (1 + relief)[None],
@@ -72,7 +76,8 @@ def compute(presences, expo, factors, species_cfg, confidence=None):
     for sp in by_species:
         t = sum(weights[k] * by_species[sp][k] for k in MECHANISMS) / sum(weights.values())
         by_species[sp]["total"] = _scale_100(t)
-    return {"by_species": by_species, "aggregate": aggregate, "total": total, "base": base}
+    return {"by_species": by_species, "aggregate": aggregate, "total": total, "base": base,
+            "presence": presences, "weight": weight, "factors": {"relief": relief, "ridge": ridge}}
 
 
 def _cell_of(grid, lon, lat):
@@ -91,10 +96,79 @@ def _dominant_species(result, mechanism, r, c, m, n=3):
     return ", ".join(sp for _, sp in contrib[:n])
 
 
+# What each mechanism is exposed to, and the terrain factor that multiplies it (None: no terrain factor)
+EXPOSURE = {"electro": "pylons_eq", "col_lin": "line_km", "col_aer": "turbines"}
+TERRAIN = {"electro": None, "col_lin": "relief", "col_aer": "ridge"}
+
+
+def _percentile_of(sorted_values, v):
+    """Share (0-100, rounded down) of `sorted_values` strictly below `v`."""
+    if sorted_values.size == 0:
+        return None
+    return int(100 * np.searchsorted(sorted_values, v, side="left") / sorted_values.size)
+
+
+class _Drivers:
+    """Why a cell scores what it scores, factor by factor: the birds (which species, how much each weighs and how
+    that compares with the rest of the region), the infrastructure in the cell, and the terrain.
+
+    Every value is language-independent; i18n.explain() turns a ranking row into sentences."""
+
+    def __init__(self, result):
+        self.result = result
+        self.ok = "presence" in result and "base" in result
+        if not self.ok:  # results built by hand (tests): only the dominant species
+            return
+        self.birds, self.sorted_birds, self.sorted_expo = {}, {}, {}
+        for k in MECHANISMS:
+            expo = result["base"][EXPOSURE[k]]
+            with_infra = expo > 0
+            birds = sum(result["weight"][sp][k] * P for sp, P in result["presence"].items())
+            self.birds[k] = birds
+            self.sorted_birds[k] = np.sort(birds[:, with_infra].ravel())
+            self.sorted_expo[k] = np.sort(expo[with_infra].ravel())
+
+    def species(self, k, r, c, m, n=3):
+        """(names, shares in %) of the n species that weigh most in the cell, from their weighted presence."""
+        total = self.birds[k][m, r, c]
+        contrib = sorted(((self.result["weight"][sp][k] * P[m, r, c], sp)
+                          for sp, P in self.result["presence"].items()), reverse=True)
+        contrib = [(v, sp) for v, sp in contrib[:n] if v > 0]
+        return (", ".join(sp for _, sp in contrib),
+                ";".join(str(int(round(100 * v / total))) for v, _ in contrib) if total > 0 else "")
+
+    def row(self, k, r, c, m):
+        if not self.ok:
+            return {"species": _dominant_species(self.result, k, r, c, m)}
+        names, shares = self.species(k, r, c, m)
+        expo = float(self.result["base"][EXPOSURE[k]][r, c])
+        terrain = TERRAIN[k]
+        return dict(species=names, species_share=shares,
+                    birds_pct=_percentile_of(self.sorted_birds[k], self.birds[k][m, r, c]),
+                    exposure=round(expo, 2), exposure_pct=_percentile_of(self.sorted_expo[k], expo),
+                    terrain=round(1 + float(self.result["factors"][terrain][r, c]), 2) if terrain else None)
+
+
+# Enedis publishes no page per object: its elements link to the dataset they come from
+ENEDIS_DATASET_URL = "https://data.enedis.fr/datasets/{dataset}"
+
+
+def _source(element, osm_type):
+    """Origin columns of a ranking row: source, source_id, source_url and, for OSM elements only, osm_id/osm_url."""
+    source = element.get("source", "osm")
+    if source == "osm":
+        url = f"https://www.openstreetmap.org/{osm_type}/{element['id']}"
+        return dict(source="osm", source_id=str(element["id"]), source_url=url, osm_id=element["id"], osm_url=url)
+    dataset = config.ENEDIS_HTA if osm_type == "way" else config.ENEDIS_POLES
+    return dict(source=source, source_id=str(element["id"]), source_url=ENEDIS_DATASET_URL.format(dataset=dataset),
+                osm_id=None, osm_url=None)
+
+
 def rank_elements(result, infra, grid):
     """Score every pylon, wind turbine and line segment from the cells it occupies."""
     rows = []
     agg = result["aggregate"]
+    drivers = _Drivers(result)
     for a in infra["pylons"]:
         if a["category"] == "transmission":
             continue
@@ -105,22 +179,21 @@ def rank_elements(result, infra, grid):
         hazard = a.get("hazard", 1.0)
         series = agg["electro"][:, r, c] * hazard
         m = int(series.argmax())
-        rows.append(dict(type="pylon", osm_id=a["id"], osm_url=f"https://www.openstreetmap.org/node/{a['id']}",
-                         lat=a["lat"], lon=a["lon"], mechanism=MECHANISM_LABEL["electro"], category=a["category"],
+        rows.append(dict(type="pylon", **_source(a, "node"), lat=a["lat"], lon=a["lon"], mechanism=MECHANISM_LABEL["electro"], category=a["category"],
                          voltage=a["voltage"], detail=a["type"], operator=a["operator"], hazard=hazard,
+                         hazard_why=a.get("hazard_why", ""),
                          risk_max=float(series.max()), risk_mean=float(series.mean()),
-                         peak_month=config.MONTHS[m], species=_dominant_species(result, "electro", r, c, m)))
+                         peak_month=config.MONTHS[m], **drivers.row("electro", r, c, m)))
     for t in infra["turbines"]:
         r, c = _cell_of(grid, t["lon"], t["lat"])
         if r < 0:
             continue
         series = agg["col_aer"][:, r, c]
         m = int(series.argmax())
-        rows.append(dict(type="turbine", osm_id=t["id"], osm_url=f"https://www.openstreetmap.org/node/{t['id']}",
-                         lat=t["lat"], lon=t["lon"], mechanism=MECHANISM_LABEL["col_aer"], category="wind",
+        rows.append(dict(type="turbine", **_source(t, "node"), lat=t["lat"], lon=t["lon"], mechanism=MECHANISM_LABEL["col_aer"], category="wind",
                          voltage=None, detail=t["power_output"], operator=t["operator"],
                          risk_max=float(series.max()), risk_mean=float(series.mean()),
-                         peak_month=config.MONTHS[m], species=_dominant_species(result, "col_aer", r, c, m)))
+                         peak_month=config.MONTHS[m], **drivers.row("col_aer", r, c, m)))
     for ln in infra["lines"]:
         lon = np.array([p[0] for p in ln["coords"]])
         lat = np.array([p[1] for p in ln["coords"]])
@@ -133,12 +206,11 @@ def rank_elements(result, infra, grid):
         m = int(series.argmax())
         worst = int(agg["col_lin"][m].flat[cells].argmax())
         r, c = divmod(int(cells[worst]), grid.nx)
-        rows.append(dict(type="line", osm_id=ln["id"], osm_url=f"https://www.openstreetmap.org/way/{ln['id']}",
-                         lat=float(lat[ok].mean()), lon=float(lon[ok].mean()),
+        rows.append(dict(type="line", **_source(ln, "way"), lat=float(lat[ok].mean()), lon=float(lon[ok].mean()),
                          mechanism=MECHANISM_LABEL["col_lin"], category=ln["category"], voltage=ln["voltage"],
                          detail=ln["name"] or ln["power"], operator=ln["operator"],
                          risk_max=float(series.max()), risk_mean=float(series.mean()),
-                         peak_month=config.MONTHS[m], species=_dominant_species(result, "col_lin", r, c, m)))
+                         peak_month=config.MONTHS[m], **drivers.row("col_lin", r, c, m)))
     df = pd.DataFrame(rows)
     if df.empty:
         return df

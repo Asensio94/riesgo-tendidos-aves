@@ -62,14 +62,17 @@ def run(
 ):
     """Build the risk map, the reports and the exports for one region, in both languages."""
     box, region_key, region_species = _bbox(region, bbox)
+    country = config.region_country(region_key) if region_key else "ES"
+    langs = config.region_langs(region_key) if region_key else config.COUNTRY_LANGS["ES"]
     grid = Grid.from_bbox(box)
     folder = config.OUTPUT_DIR / (out or (region_key or "bbox"))
     folder.mkdir(parents=True, exist_ok=True)
     log(f"[bold]{config.region_name(region_key, 'en') if region_key else f'bbox {bbox}'}[/] · grid "
         f"{grid.ny}x{grid.nx} cells of {grid.res} deg (~{grid.dx_m:.0f}x{grid.dy_m:.0f} m)")
 
-    log("[cyan]1/5[/] OSM infrastructure (Overpass)...")
-    infra = osm.get_infrastructure(box, force=force_osm)
+    log("[cyan]1/5[/] OSM infrastructure (Overpass)" + (" + Enedis, clipped to France..." if country == "FR"
+                                                          else "..."))
+    infra = osm.get_infrastructure(box, force=force_osm, country=country)
     infra_summary = osm.summary(infra)
     log(f"  {infra_summary}")
     expo = osm.exposure_layers(infra, grid)
@@ -120,7 +123,8 @@ def run(
                   for sp in presences}
     for sp in presences:
         info[sp]["confidence"] = round(confidence[sp], 2)
-    result = risk.compute(presences, expo, factors, config.SPECIES, confidence=confidence)
+    species_cfg = {sp: {**config.SPECIES[sp], "status": config.species_status(sp, country)} for sp in presences}
+    result = risk.compute(presences, expo, factors, species_cfg, confidence=confidence)
     ranking = risk.rank_elements(result, infra, grid)
     table = risk.seasonal_table(result)
 
@@ -134,24 +138,26 @@ def run(
                           ["elevation_m", "slope_deg", "tpi_m"])
 
     label = config.region_name(region_key, "en") if region_key else f"bbox {bbox}"
-    for lang in config.LANGS:
+    for lang in langs:
         region_label = config.region_name(region_key, lang) if region_key else label
-        m = report.build_map(result, infra, ranking, grid, region_label, lang, top=top, start_month=month)
+        m = report.build_map(result, infra, ranking, grid, region_label, lang, top=top, start_month=month,
+                             country=country)
         m.save(str(folder / f"map.{lang}.html"))
-        other = "en" if lang == "es" else "es"
+        other = next(x for x in langs if x != lang)
         report.report(folder / f"report.{lang}.html", f"map.{lang}.html", region_label, box, infra_summary,
-                      info, table, ranking, lang, other_lang_href=f"report.{other}.html")
-    site.region_redirects(folder)
+                      info, table, ranking, lang, other_lang_href=f"report.{other}.html", country=country)
+    if country == "ES":
+        site.region_redirects(folder)
     site.index(config.OUTPUT_DIR)
 
     console.print(table.round(0).astype(int))
     if not ranking.empty:
-        t = Table("#", "type", "mechanism", "risk", "month", "species", "OSM")
+        t = Table("#", "type", "mechanism", "risk", "month", "species", "source")
         for i, r in ranking.head(15).iterrows():
             t.add_row(str(i + 1), r.type, r.mechanism, f"{r.risk_max:.0f}", r.peak_month,
-                      str(r.species)[:60], str(r.osm_id))
+                      str(r.species)[:60], f"{r.source}:{r.source_id}")
         console.print(t)
-    log(f"[green]Done:[/] {folder / 'report.en.html'}")
+    log(f"[green]Done:[/] {folder / f'report.{langs[0]}.html'}")
 
 
 @app.command()

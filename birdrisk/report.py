@@ -43,27 +43,31 @@ def _overlay(m, arr, grid, name, show):
     ).add_to(m)
 
 
-def build_map(result, infra, ranking, grid, region_label, lang, top=100, start_month=None):
-    """Interactive folium map, with every label in `lang`."""
+def build_map(result, infra, ranking, grid, region_label, lang, top=100, start_month=None, country="ES"):
+    """Interactive folium map, with every label in `lang` (and in the wording of `country`)."""
+
+    def tt(key, **kw):
+        return i18n.t(lang, key, country=country, **kw)
+
     lat_c, lon_c = grid.lat_centre, 0.5 * (grid.lon_min + grid.lon_max)
     m = folium.Map(location=[lat_c, lon_c], zoom_start=11, tiles=None, control_scale=True)
     folium.TileLayer("OpenStreetMap", name="OpenStreetMap").add_to(m)
     folium.TileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
                      attr="© OpenTopoMap (CC-BY-SA), © OpenStreetMap contributors",
-                     name=i18n.t(lang, "tile_terrain"), show=False, max_zoom=17).add_to(m)
+                     name=tt("tile_terrain"), show=False, max_zoom=17).add_to(m)
     folium.TileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                     attr="Esri World Imagery", name=i18n.t(lang, "tile_satellite"), show=False).add_to(m)
+                     attr="Esri World Imagery", name=tt("tile_satellite"), show=False).add_to(m)
 
     month0 = (start_month or date.today().month) - 1
-    _overlay(m, result["total"].max(axis=0), grid, i18n.t(lang, "layer_total_annual"), show=False)
+    _overlay(m, result["total"].max(axis=0), grid, tt("layer_total_annual"), show=False)
     for i in range(12):
         _overlay(m, result["total"][i], grid,
-                 i18n.t(lang, "layer_total_month", month=i18n.month_label(i, lang)), show=(i == month0))
+                 tt("layer_total_month", month=i18n.month_label(i, lang)), show=(i == month0))
     for key, label in (("electro", "layer_electro"), ("col_lin", "layer_col_lin"), ("col_aer", "layer_col_aer")):
-        _overlay(m, result["aggregate"][key].max(axis=0), grid, i18n.t(lang, label), show=False)
+        _overlay(m, result["aggregate"][key].max(axis=0), grid, tt(label), show=False)
     for sp, layers in result["by_species"].items():
         _overlay(m, layers["total"].max(axis=0), grid,
-                 i18n.t(lang, "layer_species", name=config.species_name(sp, lang)), show=False)
+                 tt("layer_species", name=config.species_name(sp, lang)), show=False)
 
     # one single GeoJSON layer (not thousands of PolyLines): in large regions this takes the HTML
     # from tens of MB down to a few
@@ -72,52 +76,54 @@ def build_map(result, infra, ranking, grid, region_label, lang, top=100, start_m
          "geometry": {"type": "LineString", "coordinates": [[round(lo, 5), round(la, 5)] for lo, la in ln["coords"]]},
          "properties": {"category": i18n.category(ln["category"], lang),
                         "voltage": f"{ln['voltage'] / 1000:g} kV" if ln["voltage"]
-                                   else i18n.t(lang, "voltage_unknown"),
+                                   else tt("voltage_unknown"),
                         "name": ln["name"] or "",
                         "_cat": ln["category"]}}
         for ln in infra["lines"] if len(ln["coords"]) > 1]}
     folium.GeoJson(
-        lines_gj, name=i18n.t(lang, "layer_lines"), show=True,
+        lines_gj, name=tt("layer_lines"), show=True,
         style_function=lambda f: {"color": LINE_COLOUR[f["properties"]["_cat"]],
                                   "weight": 2 if f["properties"]["_cat"] == "distribution" else 3, "opacity": 0.8},
         tooltip=folium.GeoJsonTooltip(fields=["category", "voltage", "name"],
-                                      aliases=[i18n.t(lang, "tooltip_category"), i18n.t(lang, "tooltip_voltage"),
-                                               i18n.t(lang, "tooltip_name")]),
+                                      aliases=[tt("tooltip_category"), tt("tooltip_voltage"),
+                                               tt("tooltip_name")]),
     ).add_to(m)
 
-    fg_turbines = folium.FeatureGroup(name=i18n.t(lang, "layer_turbines"), show=True)
+    fg_turbines = folium.FeatureGroup(name=tt("layer_turbines"), show=True)
     for t in infra["turbines"]:
         folium.CircleMarker((t["lat"], t["lon"]), radius=3, color="#2c3e50", fill=True, fill_opacity=0.9,
-                            tooltip=i18n.t(lang, "tooltip_turbine",
+                            tooltip=tt("tooltip_turbine",
                                            power=t["power_output"] or "")).add_to(fg_turbines)
     fg_turbines.add_to(m)
 
     pylons = [a for a in infra["pylons"] if a["category"] != "transmission"]
     note = ""
     if len(pylons) > config.MAX_PYLONS_ON_MAP:  # large regions: only the highest index, or the HTML will not load
-        ids = set(ranking[ranking.type == "pylon"].head(config.MAX_PYLONS_ON_MAP).osm_id)
-        pylons = [a for a in pylons if a["id"] in ids]
-        note = i18n.t(lang, "layer_pylons_note", n=config.MAX_PYLONS_ON_MAP)
-    fg_pylons = folium.FeatureGroup(name=i18n.t(lang, "layer_pylons", note=note), show=False)
+        ids = set(ranking[ranking.type == "pylon"].head(config.MAX_PYLONS_ON_MAP).source_id.astype(str))
+        pylons = [a for a in pylons if str(a["id"]) in ids]
+        note = tt("layer_pylons_note", n=config.MAX_PYLONS_ON_MAP)
+    fg_pylons = folium.FeatureGroup(name=tt("layer_pylons", note=note), show=False)
     for a in pylons:
         folium.CircleMarker((a["lat"], a["lon"]), radius=2, color="#e67e22", fill=True, fill_opacity=0.7,
                             tooltip=f"{a['type']} · {i18n.category(a['category'], lang)}").add_to(fg_pylons)
     fg_pylons.add_to(m)
 
-    fg_rank = folium.FeatureGroup(name=i18n.t(lang, "layer_ranking", top=top), show=True)
+    fg_rank = folium.FeatureGroup(name=tt("layer_ranking", top=top), show=True)
     ceiling = max(float(ranking.risk_max.max()), 1.0)  # radius (5-10 px) is relative to the first in the ranking
     for i, r in ranking.head(top).iterrows():
         colour = ELEMENT_COLOUR[r.type]
         type_label = i18n.element_type(r.type, lang)
         kv = f" · {r.voltage / 1000:g} kV" if r.voltage == r.voltage and r.voltage else ""
         popup = (f"<b>#{i + 1} · {type_label}</b> ({i18n.mechanism(r.mechanism, lang)})<br>"
-                 f"{i18n.t(lang, 'popup_index', max=r.risk_max, mean=r.risk_mean)}<br>"
-                 f"{i18n.t(lang, 'popup_peak_month')}: {i18n.month_label_from_canonical(r.peak_month, lang)}<br>"
-                 f"{i18n.t(lang, 'popup_species')}: {escape(i18n.species_list(r.species, lang))}<br>"
+                 f"{tt('popup_index', max=r.risk_max, mean=r.risk_mean)}<br>"
+                 f"{tt('popup_peak_month')}: {i18n.month_label_from_canonical(r.peak_month, lang)}<br>"
+                 f"{tt('popup_species')}: {escape(i18n.species_list(r.species, lang))}<br>"
                  f"{escape(i18n.category(r.category, lang))}{kv}<br>"
-                 f"<a href='{r.osm_url}' target='_blank'>{i18n.t(lang, 'popup_osm')}</a>")
+                 f"{source_link(r, lang, tt('popup_osm'))}"
+                 f"<ul style='margin:4px 0 0;padding-left:16px'>"
+                 f"{''.join(f'<li>{escape(x)}</li>' for x in i18n.explain(r, lang))}</ul>")
         folium.CircleMarker((r.lat, r.lon), radius=5 + 5 * r.risk_max / ceiling, color=colour, weight=2,
-                            fill=True, fill_opacity=0.5, popup=folium.Popup(popup, max_width=320),
+                            fill=True, fill_opacity=0.5, popup=folium.Popup(popup, max_width=380),
                             tooltip=f"#{i + 1} {type_label} · {r.risk_max:.0f}").add_to(fg_rank)
     fg_rank.add_to(m)
 
@@ -125,16 +131,16 @@ def build_map(result, infra, ranking, grid, region_label, lang, top=100, start_m
     legend = f"""
     <div style="position: fixed; bottom: 30px; left: 10px; z-index: 9999; background: white; padding: 10px 12px;
                 border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.3); font: 12px sans-serif; max-width: 260px">
-      <b>{escape(region_label)}</b><br>{i18n.t(lang, "legend_index")}<br>
+      <b>{escape(region_label)}</b><br>{tt("legend_index")}<br>
       <div style="background: linear-gradient(to right, #000004, #3b0f70, #8c2981, #de4968, #fe9f6d, #fcfdbf);
                   height: 10px; margin: 4px 0"></div>
-      <span style="float:left">{i18n.t(lang, "legend_low")}</span>
-      <span style="float:right">{i18n.t(lang, "legend_high")}</span><br>
-      <span style="color:#e67e22">▬</span> {i18n.t(lang, "legend_distribution")} &nbsp;
-      <span style="color:#c0392b">▬</span> {i18n.t(lang, "legend_transmission")} &nbsp;
-      <span style="color:#7f8c8d">▬</span> {i18n.t(lang, "legend_unknown")}<br>
-      <span style="color:#2c3e50">●</span> {i18n.t(lang, "legend_turbine")} &nbsp;
-      <span style="color:#e74c3c">◯</span> {i18n.t(lang, "legend_priority")}
+      <span style="float:left">{tt("legend_low")}</span>
+      <span style="float:right">{tt("legend_high")}</span><br>
+      <span style="color:#e67e22">▬</span> {tt("legend_distribution")} &nbsp;
+      <span style="color:#c0392b">▬</span> {tt("legend_transmission")} &nbsp;
+      <span style="color:#7f8c8d">▬</span> {tt("legend_unknown")}<br>
+      <span style="color:#2c3e50">●</span> {tt("legend_turbine")} &nbsp;
+      <span style="color:#e74c3c">◯</span> {tt("legend_priority")}
     </div>"""
     m.get_root().html.add_child(folium.Element(legend))
     return m
@@ -153,11 +159,24 @@ def _table_html(df, lang, fmt="{:.0f}"):
     return "\n".join(out)
 
 
-def _lang_switch(current, other_href):
-    """Small pill switcher linking to the same page in the other language."""
-    other = "en" if current == "es" else "es"
-    return (f'<p class="lang"><span class="on">{i18n.t(current, "lang_name")}</span> '
-            f'<a href="{other_href}" hreflang="{other}">{i18n.t(current, "other_lang_name")}</a></p>')
+def osm_id_text(value):
+    """An OSM id as written: pandas reads the column as float when Enedis rows leave it empty (1409.0 -> "1409")."""
+    try:
+        return str(int(float(value)))
+    except (TypeError, ValueError, OverflowError):  # None, "", NaN
+        return "" if value is None or value != value else str(value)
+
+
+def source_link(r, lang, osm_label=None):
+    """Link of a ranking row to where the element comes from: its OSM page, or the Enedis dataset."""
+    url = getattr(r, "source_url", None)
+    if not isinstance(url, str) or not url:
+        url = r.osm_url  # rankings written before the source columns existed
+    if getattr(r, "source", "osm") == "enedis":
+        label = i18n.t(lang, "popup_enedis")
+    else:
+        label = osm_label or osm_id_text(r.osm_id)
+    return f"<a href='{escape(str(url))}' target='_blank'>{escape(label)}</a>"
 
 
 REPORT_CSS = site.PAGE_CSS + """
@@ -172,13 +191,20 @@ iframe{display:block;width:100%;height:640px;border:1px solid var(--line);backgr
 .meta{color:var(--muted);font-size:14.5px}
 .wrap{overflow-x:auto}
 code{font-family:var(--font-data);font-size:.9em}
+td.why{min-width:340px;font-size:12.5px;line-height:1.4}
 @media (max-width:640px){iframe{height:70vh}}
 """
 
 
 def report(path, map_rel, region_label, bbox, infra_summary, species_info, table, ranking, lang,
-           other_lang_href, top=50, regions_href="../regions.{lang}.html"):
-    """Write the HTML report of one region in one language."""
+           other_lang_href, top=50, regions_href="../regions.{lang}.html", country="ES", other_lang=None):
+    """Write the HTML report of one region in one language; `other_lang_href` is the same report in
+    `other_lang` (English, or the country's own language on the English page)."""
+
+    def tt(key, **kw):
+        return i18n.t(lang, key, country=country, **kw)
+
+    other_lang = other_lang or ("en" if lang != "en" else config.COUNTRY_LANGS[country][0])
     rows = []
     for i, r in ranking.head(top).iterrows():
         kv = f"{r.voltage / 1000:g} kV" if r.voltage == r.voltage and r.voltage else ""
@@ -187,66 +213,70 @@ def report(path, map_rel, region_label, bbox, infra_summary, species_info, table
             f"<td>{escape(i18n.mechanism(r.mechanism, lang))}</td><td>{r.risk_max:.0f}</td>"
             f"<td>{r.risk_mean:.0f}</td><td>{escape(i18n.month_label_from_canonical(r.peak_month, lang))}</td>"
             f"<td>{escape(i18n.species_list(r.species, lang))}</td>"
+            f"<td class='why'>{'<br>'.join(escape(x) for x in i18n.explain(r, lang))}</td>"
             f"<td>{escape(i18n.category(r.category, lang))} {kv}</td><td>{escape(str(r.operator or ''))}</td>"
-            f"<td><a href='{r.osm_url}' target='_blank'>{r.osm_id}</a></td></tr>")
+            f"<td>{source_link(r, lang)}</td></tr>")
     species_rows = "".join(
         f"<tr><td><i>{escape(sp)}</i></td><td>{escape(config.species_name(sp, lang))}</td>"
-        f"<td>{info['gbif_records']}</td><td>{info['movebank_fixes']}</td>"
-        f"<td>{info.get('confidence', '')}</td>"
-        f"<td>{i18n.t(lang, 'yes') if info['included'] else i18n.t(lang, 'no_few_records')}</td></tr>"
+        f"<td>{i18n.num(info['gbif_records'], lang)}</td><td>{i18n.num(info['movebank_fixes'], lang)}</td>"
+        f"<td>{i18n.num(info['confidence'], lang) if 'confidence' in info else ''}</td>"
+        f"<td>{tt('yes') if info['included'] else tt('no_few_records')}</td></tr>"
         for sp, info in species_info.items())
     included = sum(1 for info in species_info.values() if info["included"])
     figures = site.figures_html([
-        (i18n.num(infra_summary["lines"], lang), i18n.t(lang, "fig_line_segments")),
-        (i18n.num(infra_summary["pylons"], lang), i18n.t(lang, "fig_pylons")),
-        (i18n.num(infra_summary["turbines"], lang), i18n.t(lang, "fig_turbines")),
-        (i18n.num(included, lang), i18n.t(lang, "fig_species")),
+        (i18n.num(infra_summary["lines"], lang), tt("fig_line_segments")),
+        (i18n.num(infra_summary["pylons"], lang), tt("fig_pylons")),
+        (i18n.num(infra_summary["turbines"], lang), tt("fig_turbines")),
+        (i18n.num(included, lang), tt("fig_species")),
     ])
-    html = f"""{site.page_head(lang, i18n.t(lang, 'report_title', region=region_label), REPORT_CSS)}<body>
+    km = " · ".join(f"{i18n.category(k, lang)} {i18n.num(round(v, 1), lang)}"
+                    for k, v in infra_summary["km_by_category"].items())
+    html = f"""{site.page_head(lang, tt('report_title', region=region_label), REPORT_CSS)}<body>
 <header class="site-header">
-{_lang_switch(lang, other_lang_href)}
-<h1>{site.LOGO_SVG}{i18n.t(lang, 'h1_html')}</h1>
-<p class="lede">{escape(i18n.t(lang, 'report_lede', region=region_label))}</p>
-<p class="meta">{escape(i18n.t(lang, 'report_meta', region=region_label, bbox=bbox, date=date.today().isoformat()))}
- · <a href="{regions_href.format(lang=lang)}">{escape(i18n.t(lang, 'back_to_regions'))}</a></p>
+{site.lang_switch(lang, {other_lang: other_lang_href})}
+<h1>{site.LOGO_SVG}{tt('h1_html')}</h1>
+<p class="lede">{escape(tt('report_lede', region=region_label))}</p>
+<p class="meta">{escape(tt('report_meta', region=region_label, bbox=bbox, date=date.today().isoformat()))}
+ · <a href="{regions_href.format(lang=lang)}">{escape(tt('back_to_regions'))}</a></p>
 {figures}
 </header>
 <main>
-<p class="meta">{escape(i18n.t(lang, 'report_meta', region=region_label, bbox=bbox, date=date.today().isoformat()))}
- · <a href="{regions_href.format(lang=lang)}">{escape(i18n.t(lang, 'back_to_regions'))}</a></p>
+<p class="meta">{escape(tt('report_meta', region=region_label, bbox=bbox, date=date.today().isoformat()))}
+ · <a href="{regions_href.format(lang=lang)}">{escape(tt('back_to_regions'))}</a></p>
 <iframe src="{map_rel}" loading="lazy"></iframe>
-<p>{escape(i18n.t(lang, 'report_intro'))}</p>
+<p>{escape(tt('report_intro'))}</p>
 
-<h2>{escape(i18n.t(lang, 'h2_infra'))}</h2>
+<h2>{escape(tt('h2_infra'))}</h2>
 <ul>
- <li>{escape(i18n.t(lang, 'infra_lines', n=infra_summary['lines'],
-                    km=json.dumps(infra_summary['km_by_category'], ensure_ascii=False)))}</li>
- <li>{escape(i18n.t(lang, 'infra_pylons', n=infra_summary['pylons'], dist=infra_summary['pylons_distribution'],
-                    tagged=infra_summary.get('pylons_tagged', 0)))}</li>
- <li>{escape(i18n.t(lang, 'infra_turbines', n=infra_summary['turbines']))}</li>
+ <li>{escape(tt('infra_lines', n=i18n.num(infra_summary['lines'], lang), km=km))}</li>
+ <li>{escape(tt('infra_pylons', n=i18n.num(infra_summary['pylons'], lang),
+                    dist=i18n.num(infra_summary['pylons_distribution'], lang),
+                    tagged=i18n.num(infra_summary.get('pylons_tagged', 0), lang)))}</li>
+ <li>{escape(tt('infra_turbines', n=i18n.num(infra_summary['turbines'], lang)))}</li>
 </ul>
 
-<h2>{escape(i18n.t(lang, 'h2_species'))}</h2>
-<div class="wrap"><table><thead><tr><th>{escape(i18n.t(lang, 'th_species'))}</th>
-<th>{escape(i18n.t(lang, 'th_common_name'))}</th><th>{escape(i18n.t(lang, 'th_gbif'))}</th>
-<th>{escape(i18n.t(lang, 'th_movebank'))}</th><th>{escape(i18n.t(lang, 'th_confidence'))}</th>
-<th>{escape(i18n.t(lang, 'th_included'))}</th></tr></thead>
+<h2>{escape(tt('h2_species'))}</h2>
+<div class="wrap"><table><thead><tr><th>{escape(tt('th_species'))}</th>
+<th>{escape(tt('th_common_name'))}</th><th>{escape(tt('th_gbif'))}</th>
+<th>{escape(tt('th_movebank'))}</th><th>{escape(tt('th_confidence'))}</th>
+<th>{escape(tt('th_included'))}</th></tr></thead>
 <tbody>{species_rows}</tbody></table></div>
 
-<h2>{escape(i18n.t(lang, 'h2_seasonality'))}</h2>
+<h2>{escape(tt('h2_seasonality'))}</h2>
 <div class="wrap">{_table_html(table, lang)}</div>
 
-<h2>{escape(i18n.t(lang, 'h2_ranking', top=top))}</h2>
-<div class="wrap"><table><thead><tr><th>{escape(i18n.t(lang, 'th_rank'))}</th>
-<th>{escape(i18n.t(lang, 'th_type'))}</th><th>{escape(i18n.t(lang, 'th_mechanism'))}</th>
-<th>{escape(i18n.t(lang, 'th_risk_max'))}</th><th>{escape(i18n.t(lang, 'th_risk_mean'))}</th>
-<th>{escape(i18n.t(lang, 'th_peak_month'))}</th><th>{escape(i18n.t(lang, 'th_species_list'))}</th>
-<th>{escape(i18n.t(lang, 'th_category'))}</th><th>{escape(i18n.t(lang, 'th_operator'))}</th>
-<th>{escape(i18n.t(lang, 'th_osm'))}</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
-<p>{i18n.t(lang, 'ranking_files')}</p>
+<h2>{escape(tt('h2_ranking', top=top))}</h2>
+<p>{escape(tt('ranking_why'))}</p>
+<div class="wrap"><table><thead><tr><th>{escape(tt('th_rank'))}</th>
+<th>{escape(tt('th_type'))}</th><th>{escape(tt('th_mechanism'))}</th>
+<th>{escape(tt('th_risk_max'))}</th><th>{escape(tt('th_risk_mean'))}</th>
+<th>{escape(tt('th_peak_month'))}</th><th>{escape(tt('th_species_list'))}</th>
+<th>{escape(tt('th_why'))}</th><th>{escape(tt('th_category'))}</th><th>{escape(tt('th_operator'))}</th>
+<th>{escape(tt('th_osm'))}</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>
+<p>{tt('ranking_files')}</p>
 </main>
-{site.method_section(lang)}
-{site.site_footer(lang)}
+{site.method_section(lang, (country,))}
+{site.site_footer(lang, country)}
 </body></html>"""
     path.write_text(html, encoding="utf-8")
 

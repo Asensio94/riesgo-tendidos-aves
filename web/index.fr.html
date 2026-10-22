@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cstyle%3E.b%7Bfill%3A%23221d1a%7D.p%7Bfill%3A%238a5a00%7D.l%7Bstroke%3A%23221d1a%7D%40media%20%28prefers-color-scheme%3Adark%29%7B.b%7Bfill%3A%23ede6e0%7D.p%7Bfill%3A%23e3a93c%7D.l%7Bstroke%3A%23ede6e0%7D%7D%3C/style%3E%3Cg%20class%3D%22b%22%3E%3Ccircle%20cx%3D%2234%22%20cy%3D%2231%22%20r%3D%2219%22/%3E%3Cpath%20d%3D%22M19%2040%207%2050.5l3.5%204L25%2046z%22/%3E%3Cpath%20d%3D%22M52%2022l8%202.5-8%202.5z%22/%3E%3C/g%3E%3Cpath%20class%3D%22p%22%20d%3D%22M34%2012a19%2019%200%200%201%2015%2030.8C42%2041%2037%2034%2037%2026c0-6%201.5-10.5%204-12.6A19%2019%200%200%200%2034%2012z%22/%3E%3Cg%20fill%3D%22%23221d1a%22%3E%3Ccircle%20cx%3D%2245%22%20cy%3D%2221.5%22%20r%3D%222.1%22/%3E%3C/g%3E%3Cpath%20class%3D%22l%22%20d%3D%22M31%2049.5V60m7-11v11m-10.5.2h6m1.5%200h6%22%20fill%3D%22none%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22/%3E%3C/svg%3E">
+<title>Risque de collision et d’électrocution des oiseaux · le projet</title>
+<meta name="description" content="Carte dynamique du risque de collision et d’électrocution des oiseaux : méthode, données, difficultés et pistes pour gagner en précision. Un projet ouvert pour prioriser la neutralisation des lignes électriques et des éoliennes, en Espagne et en France.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+/* common.css v1.1 — shared look of the nine open-data projects (vigia-incendios is the reference).
+   Copy this file verbatim into each repo; change it in all repos at once, never in one.
+   Each repo sets only --accent and --accent-dark below it and adds its own rules after it.
+
+   Type:  Barlow Condensed for titles and labels, Source Serif 4 for reading, IBM Plex Mono for
+          figures, codes and dates. Load them with:
+   https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap */
+
+:root{
+  --ground:#f0edea; --paper:#faf8f6; --ink:#221d1a; --muted:#6b625c; --line:#dad2cb;
+  --accent:#c2410c; --accent-dark:#fb7b3e;
+  --natura:#2f7a55; --natura-dark:#62b88a;
+  --shadow:0 1px 0 rgba(34,29,26,.06), 0 6px 18px -10px rgba(34,29,26,.28);
+  --font-title:"Barlow Condensed","Arial Narrow",sans-serif;
+  --font-text:"Source Serif 4",Georgia,serif;
+  --font-data:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#15110f; --paper:#1d1815; --ink:#ede6e0; --muted:#a69a91; --line:#362d28;
+    --accent:var(--accent-dark); --natura:var(--natura-dark);
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 8px 22px -12px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#15110f; --paper:#1d1815; --ink:#ede6e0; --muted:#a69a91; --line:#362d28;
+  --accent:var(--accent-dark); --natura:var(--natura-dark);
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 8px 22px -12px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:17px/1.55 var(--font-text);overflow-wrap:break-word}
+a{color:inherit;text-decoration-color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+img,svg{max-width:100%}
+
+/* Header: «PROJECT NAME» with the key word in the accent colour, one sentence, then the figures. */
+.site-header{max-width:1440px;margin:0 auto;padding:28px 16px 18px;display:grid;gap:14px}
+.site-header h1{margin:0;font:700 clamp(40px,6vw,64px)/.9 var(--font-title);text-transform:uppercase;letter-spacing:.02em}
+.site-header h1 span{color:var(--accent)}
+/* Logo: the robin from logo.py before the title; same shape everywhere, breast in the accent. */
+.logo{display:inline-block;width:1.05em;height:1.05em;margin-right:.16em;vertical-align:-.13em;color:var(--ink);overflow:visible}
+.logo .logo-breast{fill:var(--accent)}
+.site-header .lede{margin:0;max-width:72ch;font-size:18px}
+.figures{display:flex;flex-wrap:wrap;gap:12px 28px;margin:0;padding:12px 0 0;border-top:1px solid var(--line)}
+.figures div{display:grid;gap:2px}
+.figures b{font:600 30px/1 var(--font-data);font-variant-numeric:tabular-nums;color:var(--accent)}
+.figures span{font:600 13px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+/* Text roles */
+.label{font-family:var(--font-title);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.data{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:14.5px}
+.badge{display:inline-block;font:600 12px/1 var(--font-title);text-transform:uppercase;letter-spacing:.09em;padding:4px 7px 3px;border:1.5px solid currentColor;color:var(--accent)}
+
+/* Cards and panels */
+.card{background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);padding:16px}
+
+/* Method section: how every figure is computed, step by step */
+.method{max-width:1440px;margin:0 auto;padding:24px 16px}
+.method h2{margin:0 0 6px;font:700 28px/1 var(--font-title);text-transform:uppercase;letter-spacing:.03em}
+.method h3{margin:18px 0 4px;font:600 18px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.06em}
+.method p,.method li{max-width:72ch}
+table.params{border-collapse:collapse;font-size:14.5px;width:100%;max-width:900px}
+table.params th,table.params td{text-align:left;vertical-align:top;padding:6px 10px 6px 0;border-bottom:1px solid var(--line)}
+table.params th{font:600 14px/1.3 var(--font-title);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;padding-right:16px}
+table.params td.num,table.params th.num{text-align:right;font-family:var(--font-data);font-variant-numeric:tabular-nums}
+
+/* Footer: sources, licence, the shared principle and the sibling projects */
+.site-footer{max-width:1440px;margin:0 auto;padding:16px 16px 40px;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line);display:grid;gap:10px}
+.site-footer .principle{margin:0;color:var(--ink);font-style:italic}
+.siblings{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0;list-style:none}
+.siblings li a{text-decoration-color:var(--line)}
+.siblings li[aria-current] a{color:var(--ink);text-decoration-color:var(--accent);font-weight:600}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .figures b{font-size:24px}
+}
+:root{--accent:#8a5a00;--accent-dark:#e3a93c}
+/* Repo tokens point at the common ones; colours with a meaning (priorities, diagram, map ramp) stay here. */
+:root{
+  --bg:var(--ground); --acc:var(--accent);
+  --acc2:#e08a1e; --ok:#2f6f4e; --sky:#2b5f8a; --chip:#f1ece2;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--chip:#282b33; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6}
+}
+:root[data-theme="dark"]{--chip:#282b33; --acc2:#f0a340; --ok:#5fae85; --sky:#6fa5d6}
+html{scroll-behavior:smooth}
+.cap,.method{scroll-margin-top:56px}
+img{display:block}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.site-header,.method,.site-footer{max-width:1040px}
+.site-header .lang{justify-self:end}
+.kicker{font:600 14px/1.2 var(--font-title);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.site-header .note{margin:0;max-width:72ch}
+.site-header .btns{margin-top:0}
+nav.toc{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);border-top:1px solid var(--line);z-index:5;overflow-x:auto}
+nav.toc ol{display:flex;gap:4px;list-style:none;margin:0;padding:8px 0;white-space:nowrap}
+nav.toc a{display:block;padding:6px 10px;border-radius:999px;font:600 14px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-decoration:none}
+nav.toc a:hover{background:var(--chip);color:var(--ink)}
+section.cap{padding:56px 0;border-bottom:1px solid var(--line)}
+h2 .num{display:inline-flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;border-radius:50%;background:var(--acc);color:var(--paper);font:600 17px/1 var(--font-data);margin-right:10px}
+h2,h3,h4{font-family:var(--font-title)}
+h2{font-size:clamp(26px,3.6vw,36px);line-height:1.1;margin:0 0 8px;letter-spacing:.01em;display:flex;align-items:center}
+.sub{color:var(--muted);font-size:17px;margin:0 0 26px;max-width:760px}
+h3{font-size:21px;margin:28px 0 8px;letter-spacing:.02em}
+p{max-width:760px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h4{margin:0 0 6px;font-size:18px}
+.card p{margin:0;font-size:14.5px;color:var(--muted)}
+.card .tag{display:inline-block;font:600 12px/1.4 var(--font-title);padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted);margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase}
+.card.acc{border-left:4px solid var(--acc)}
+.card.ok{border-left:4px solid var(--ok)}
+.card.warn{border-left:4px solid var(--acc2)}
+figure{margin:24px 0;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;overflow:hidden}
+figure img{border-radius:8px}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.45}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.ramp{background:linear-gradient(90deg,#fff5c8,#fecc5c,#fd8d3c,#e31a1c,#800026);width:70px!important}
+pre.formula{background:var(--chip);border-radius:10px;padding:14px 16px;font:14px/1.55 var(--font-data);overflow-x:auto;max-width:760px}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.steps li{position:relative;padding:14px 16px 14px 58px;background:var(--paper);border:1px solid var(--line);border-radius:12px;max-width:none}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:16px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--chip);color:var(--ink);font:600 14px/1 var(--font-data);display:flex;align-items:center;justify-content:center}
+.steps b{display:block;margin-bottom:2px}
+.steps span{font-size:14.5px;color:var(--muted)}
+.tl{list-style:none;padding:0;margin:0;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 22px 24px}
+.tl li::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--acc2);border:2px solid var(--bg)}
+.tl b{display:block}
+.tl .fix{display:block;font-size:14.5px;color:var(--muted);margin-top:2px}
+.tl .fix::before{content:"→ ";color:var(--ok);font-weight:700}
+.tbl{overflow-x:auto;border-radius:12px}
+.tbl table{border-collapse:collapse;width:100%;font-size:14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tbl th,.tbl td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{background:var(--chip);font:600 14px/1.3 var(--font-title);text-transform:uppercase;letter-spacing:.04em}
+.prio{font:600 13px/1.4 var(--font-data);padding:2px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+.p1{background:var(--acc);color:var(--paper)} .p2{background:var(--acc2)} .p3{background:var(--sky)}
+.cta{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:26px 28px;margin-top:20px}
+.cta h3{margin-top:0}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--acc);color:var(--paper);text-decoration:none;font:600 16px/1.2 var(--font-title);text-transform:uppercase;letter-spacing:.05em}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.svgbox{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px;overflow-x:auto}
+.svgbox svg{display:block;min-width:640px;width:100%;height:auto}
+.note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:12px;max-width:760px}
+.lang{display:inline-flex;gap:6px;align-items:center;font:600 13px/1 var(--font-title);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.lang a{color:var(--muted);text-decoration:none;padding:4px 10px 3px;border-radius:999px;border:1px solid var(--line)}
+.lang a:hover{background:var(--chip);color:var(--ink)}
+.lang a.on{color:var(--accent);border-color:var(--accent)}
+.method code{font-family:var(--font-data);font-size:.9em}
+@media (max-width:640px){
+  section.cap{padding:40px 0}
+  .cta{padding:20px 16px}
+  .steps li{padding-left:52px}
+  table.params th{white-space:normal}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="lang"><a href="index.html">Español</a><a href="index.en.html">English</a><a class="on" href="index.fr.html" aria-current="page">Français</a></div>
+  <p class="kicker">Projet ouvert · septembre 2026 · version 0.1</p>
+  <h1><svg class="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="34" cy="31" r="19"/><path d="M19 40 7 50.5l3.5 4L25 46z"/><path d="M52 22l8 2.5-8 2.5z"/></g><path class="logo-breast" d="M34 12a19 19 0 0 1 15 30.8C42 41 37 34 37 26c0-6 1.5-10.5 4-12.6A19 19 0 0 0 34 12z"/><g fill="#221d1a"><circle cx="45" cy="21.5" r="2.1"/></g><path d="M31 49.5V60m7-11v11m-10.5.2h6m1.5 0h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Risque des <span>lignes</span> pour les oiseaux</h1>
+  <p class="lede">Une carte dynamique du risque de collision et d’électrocution des oiseaux : elle croise les lignes électriques et les éoliennes (OpenStreetMap et, en France, les données ouvertes d’Enedis) avec les lieux et les périodes où se trouvent les oiseaux (données eBird et GBIF, suivi GPS de Movebank) et avec le relief, pour décider quel poteau, quel tronçon ou quelle éolienne corriger en priorité.</p>
+  <p class="note">Elle produit un indice par maille de 500 m, par espèce et par mois, et un classement des poteaux, tronçons et éoliennes à vérifier en urgence. Le calcul est refait chaque mois. Tout le code et toutes les données produites sont publics. Né en Espagne, le projet s’étend à la France : cinq régions pilotes (la Crau, la Camargue, les Grands Causses, les Pyrénées occidentales et la Champagne humide) forment une première vague, en cours de calcul.</p>
+  <div class="btns">
+      <a class="btn" href="regions.fr.html">Voir les cartes et les classements</a>
+      <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Code et méthode (GitHub)</a>
+    </div>
+  <div class="figures">
+    <div><b>2</b><span>régions pilotes en Espagne : détroit de Gibraltar et Cantabrie</span></div>
+    <div><b>49 000</b><span>poteaux évalués</span></div>
+    <div><b>4 950</b><span>tronçons de ligne · 979 éoliennes</span></div>
+    <div><b>265 000</b><span>données de 21 espèces sensibles (2010-2026)</span></div>
+    <div><b>361 000</b><span>positions GPS de milan noir et de cigogne blanche</span></div>
+    <div><b>12</b><span>cartes mensuelles par espèce et par mécanisme</span></div>
+  </div>
+</header>
+
+<nav class="toc"><div class="wrap"><ol>
+  <li><a href="#problema">1 · Le problème</a></li>
+  <li><a href="#idea">2 · L’idée</a></li>
+  <li><a href="#datos">3 · Les données</a></li>
+  <li><a href="#resultados">4 · Les résultats</a></li>
+  <li><a href="#retos">5 · Les difficultés</a></li>
+  <li><a href="#mejoras">6 · Gagner en précision</a></li>
+  <li><a href="#colaborar">7 · Participer</a></li>
+  <li><a href="#metodo">Comment c’est calculé</a></li>
+</ol></div></nav>
+
+<section class="cap" id="problema"><div class="wrap">
+  <h2><span class="num">1</span>Le problème : on sait qu’elles tuent, pas laquelle corriger d’abord</h2>
+  <p class="sub">Les lignes de distribution électrocutent les oiseaux qui se posent sur leurs poteaux ; les câbles et les pales
+  des éoliennes les percutent en vol. Ce sont, en Espagne, les premières causes de mortalité non naturelle chez les grands
+  rapaces et les oiseaux planeurs ; le problème est le même sur le réseau HTA français.</p>
+  <div class="grid g3">
+    <div class="card acc"><span class="tag">Électrocution</span><h4>Poteaux de distribution (1-66 kV en Espagne, HTA jusqu’à 50 kV en France)</h4>
+      <p>L’oiseau se pose sur la traverse et touche deux phases, ou une phase et la terre. Tout dépend de l’armement du poteau, du type d’isolateur et
+      de la présence de dérivations ou d’interrupteurs. Sont touchés vautours, aigles, cigognes, milans et grand-duc d’Europe.</p></div>
+    <div class="card acc"><span class="tag">Collision avec les câbles</span><h4>Toutes les lignes, surtout le câble de garde</h4>
+      <p>Oiseaux peu manœuvrants ou volant en groupe, à l’aube et au crépuscule : grues cendrées, cigognes, spatules blanches, hérons cendrés,
+      outardes. C’est pire sur les versants, les cols et les couloirs de migration.</p></div>
+    <div class="card acc"><span class="tag">Collision avec les éoliennes</span><h4>Les pales sur les crêtes et les cols</h4>
+      <p>Les planeurs qui exploitent les mêmes ascendances qui justifient le parc éolien : vautour fauve, vautour percnoptère,
+      gypaète barbu, aigle royal, milans.</p></div>
+  </div>
+  <h3>Ce qui manque</h3>
+  <p>En Espagne, le décret royal 1432/2008 impose de corriger les lignes dangereuses situées dans les zones de protection, et il existe
+  d’excellents travaux universitaires sur des sites et des années précis. Mais aucun service à jour et consultable n’indique à un gestionnaire de réseau,
+  à une administration ou à une association <b>quels éléments vérifier en premier, à quel mois et pour quelles espèces</b>. On décide
+  des corrections à partir d’inventaires anciens, de cadavres trouvés par hasard ou tronçon par tronçon, une fois qu’une plainte arrive.
+  C’est ce vide que le projet cherche à combler, d’abord en Espagne et désormais en France.</p>
+</div></section>
+
+<section class="cap" id="idea"><div class="wrap">
+  <h2><span class="num">2</span>L’idée : risque = exposition × présence × sensibilité</h2>
+  <p class="sub">Un poteau est dangereux s’il y a beaucoup de poteaux dangereux à cet endroit, si des oiseaux sensibles s’y trouvent et si c’est
+  la période de l’année où ils le fréquentent. Chacun de ces facteurs peut être estimé à partir de données ouvertes et mis à jour automatiquement.</p>
+  <div class="svgbox">
+  <svg viewBox="0 0 1000 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Schéma du fonctionnement du projet">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a857b"/></marker></defs>
+    <g font-family="system-ui,sans-serif" font-size="14" fill="currentColor">
+      <!-- sources -->
+      <rect x="20" y="20" width="200" height="60" rx="10" fill="#e9f0f7" stroke="#2b5f8a"/>
+      <text x="120" y="45" text-anchor="middle" font-weight="700" fill="#1d1d1b">OSM (+ Enedis)</text>
+      <text x="120" y="66" text-anchor="middle" fill="#3b3b3b" font-size="12.5">lignes · poteaux · éoliennes</text>
+      <rect x="20" y="95" width="200" height="60" rx="10" fill="#eef5ea" stroke="#2f6f4e"/>
+      <text x="120" y="120" text-anchor="middle" font-weight="700" fill="#1d1d1b">GBIF + eBird</text>
+      <text x="120" y="141" text-anchor="middle" fill="#3b3b3b" font-size="12.5">données par espèce et mois · effort</text>
+      <rect x="20" y="170" width="200" height="60" rx="10" fill="#eef5ea" stroke="#2f6f4e"/>
+      <text x="120" y="195" text-anchor="middle" font-weight="700" fill="#1d1d1b">Movebank</text>
+      <text x="120" y="216" text-anchor="middle" fill="#3b3b3b" font-size="12.5">suivi GPS publié</text>
+      <rect x="20" y="245" width="200" height="60" rx="10" fill="#f7efe2" stroke="#e08a1e"/>
+      <text x="120" y="270" text-anchor="middle" font-weight="700" fill="#1d1d1b">Relief (30 m)</text>
+      <text x="120" y="291" text-anchor="middle" fill="#3b3b3b" font-size="12.5">pente · crêtes et cols</text>
+      <!-- layers -->
+      <path d="M220 50 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M220 125 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M220 200 H300 V140" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M220 275 H300" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <rect x="305" y="20" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="45" text-anchor="middle" font-weight="700" fill="#1d1d1b">Exposition par maille</text>
+      <text x="415" y="66" text-anchor="middle" fill="#3b3b3b" font-size="12.5">km de ligne · poteaux × danger · éoliennes</text>
+      <rect x="305" y="95" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="120" text-anchor="middle" font-weight="700" fill="#1d1d1b">Présence par espèce et mois</text>
+      <text x="415" y="141" text-anchor="middle" fill="#3b3b3b" font-size="12.5">données / effort, lissées, + GPS</text>
+      <rect x="305" y="245" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="415" y="270" text-anchor="middle" font-weight="700" fill="#1d1d1b">Facteurs topographiques</text>
+      <text x="415" y="291" text-anchor="middle" fill="#3b3b3b" font-size="12.5">+ collision sur pentes et crêtes</text>
+      <rect x="305" y="170" width="220" height="60" rx="10" fill="#fff" stroke="#8a857b" stroke-dasharray="4 3"/>
+      <text x="415" y="195" text-anchor="middle" font-weight="700" fill="#1d1d1b">Sensibilité par espèce</text>
+      <text x="415" y="216" text-anchor="middle" fill="#3b3b3b" font-size="12.5">poids de la littérature + statut</text>
+      <!-- model -->
+      <path d="M525 50 H600 V150" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M525 125 H600" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M525 200 H600 V175" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <path d="M525 275 H600 V180" stroke="#8a857b" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>
+      <rect x="605" y="110" width="170" height="110" rx="12" fill="#8a5a00"/>
+      <text x="690" y="150" text-anchor="middle" font-weight="700" fill="#fff" font-size="16">Indice de risque</text>
+      <text x="690" y="172" text-anchor="middle" fill="#fff" font-size="12.5">maille × espèce × mois</text>
+      <text x="690" y="192" text-anchor="middle" fill="#fff" font-size="12.5">3 mécanismes</text>
+      <!-- outputs -->
+      <path d="M775 165 H840" stroke="#8a857b" stroke-width="1.6" marker-end="url(#ar)"/>
+      <rect x="845" y="40" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="70" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Carte mensuelle</text>
+      <rect x="845" y="105" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="135" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Classement</text>
+      <rect x="845" y="170" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="200" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">GeoTIFF · CSV</text>
+      <rect x="845" y="235" width="140" height="50" rx="10" fill="#fff" stroke="#8a857b"/>
+      <text x="915" y="258" text-anchor="middle" font-weight="600" fill="#1d1d1b" font-size="13.5">Noter les projets</text>
+      <text x="915" y="275" text-anchor="middle" fill="#3b3b3b" font-size="11.5">(consultations)</text>
+      <path d="M840 165 V65 H845 M840 165 V195 H845 M840 165 V260 H845" stroke="#8a857b" stroke-width="1.6" fill="none"/>
+    </g>
+  </svg>
+  </div>
+  <p class="note">L’indice est <b>relatif à la région</b> (le 99e centile vaut 100) : il classe, il ne certifie pas une mortalité.
+  Un poteau d’indice 300 ne tue pas trois fois plus qu’un poteau d’indice 100 ; il cumule simplement plus de poteaux, plus d’oiseaux sensibles et plus
+  de mois de présence que 99 % des mailles.</p>
+</div></section>
+
+<section class="cap" id="datos"><div class="wrap">
+  <h2><span class="num">3</span>Les données : toutes ouvertes, aucune derrière une clé</h2>
+  <p class="sub">Condition de départ : que n’importe qui puisse faire tourner le projet sans demander d’autorisation. C’est le cas ; la
+  seule couche qui exige une clé (eBird Status &amp; Trends) est prête mais pas encore chargée. En France, le réseau de distribution vient
+  des données ouvertes d’Enedis et non plus seulement d’OpenStreetMap.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Source</th><th>Ce qu’elle apporte</th><th>Volume dans les régions pilotes</th><th>Licence</th></tr></thead>
+    <tbody>
+      <tr><td><b>OpenStreetMap</b> (Overpass)</td><td>Lignes avec leur tension et leur exploitant, pylônes et poteaux avec leurs attributs (matériau, isolateur, dérivations), éoliennes. En France : les lignes HTB de RTE (qui ne publie plus leur géométrie, retirée « pour raisons de sécurité publique ») et les éoliennes</td>
+          <td>Cantabrie : 46 300 poteaux, 4 535 tronçons, 463 éoliennes<br>Détroit : 2 703 poteaux, 414 tronçons, 516 éoliennes</td><td>ODbL</td></tr>
+      <tr><td><b>Enedis</b> (opendata.enedis.fr), France uniquement</td><td>Toutes les lignes aériennes HTA (<code>reseau-hta</code>) et la position de tous les poteaux HTA et BT (<code>position-geographique-des-poteaux-hta-et-bt</code>) : un poteau proche d’une ligne HTA est compté comme poteau HTA</td>
+          <td>Première vague française en cours de calcul</td><td>Licence Ouverte 2.0 (lignes) · ODbL (poteaux)</td></tr>
+      <tr><td><b>GBIF</b>, qui intègre l’<b>eBird Observation Dataset</b></td><td>Données géolocalisées par espèce, mois et année depuis 2010. Les données de <i>tous</i> les oiseaux mesurent l’effort d’observation</td>
+          <td>Cantabrie : 1,35 M de données d’oiseaux (effort), dont 101 000 de 18 espèces<br>Détroit : 165 000 données de 16 espèces</td><td>CC0 / CC BY / CC BY-NC selon le jeu de données</td></tr>
+      <tr><td><b>Movebank Data Repository</b></td><td>Trajets GPS publiés avec les articles scientifiques : là où volent réellement les individus équipés</td>
+          <td>Détroit : 296 719 positions de milan noir, 64 567 de cigogne blanche<br>Cantabrie : 5 positions (aucun jeu publié pour la zone)</td><td>CC0</td></tr>
+      <tr><td><b>AWS Terrain Tiles</b> (terrarium)</td><td>Altitude à 30 m → pente et indice de position topographique (crêtes et cols)</td><td>Les deux régions en entier</td><td>Domaine public</td></tr>
+      <tr><td><b>Natura 2000</b> (Agence européenne pour l’environnement) et <b>IGN Admin Express</b></td><td>Sites Natura 2000 (ZPS et ZSC) croisés avec le classement ; départements français, pour découper chaque région française au seul territoire national</td><td>Régions françaises</td><td>—</td></tr>
+      <tr><td><b>Littérature</b></td><td>Poids de sensibilité par espèce et par mécanisme (Bevanger 1998, Janss 2000, Lehman 2007, Marques 2014) et statut dans le Catalogue espagnol des espèces menacées ; en France, la Liste rouge des oiseaux nicheurs de France métropolitaine (UICN France, 2016)</td><td>21 espèces</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Espèces évaluées</h3>
+  <p>Détroit : vautour fauve, vautour moine, vautour percnoptère, aigle ibérique, aigle de Bonelli, aigle royal, circaète
+  Jean-le-Blanc, aigle botté, bondrée apivore, milan noir et milan royal, faucon pèlerin, cigogne blanche et cigogne noire, grue cendrée et
+  grand-duc d’Europe. La Cantabrie remplace les espèces méditerranéennes par le gypaète barbu, le crave à bec rouge, la spatule blanche et le héron cendré. Chaque
+  espèce porte un poids par mécanisme (0-1) et un poids de conservation, tous deux réglables dans un seul fichier de configuration.
+  Dans les régions françaises, la liste est adaptée à chaque site (vautours dans les Grands Causses, grue cendrée en Champagne humide, par exemple).</p>
+</div></section>
+
+<section class="cap" id="resultados"><div class="wrap">
+  <h2><span class="num">4</span>Les résultats à ce jour</h2>
+  <p class="sub">Deux régions pilotes espagnoles aux profils opposés : le détroit, avec peu de poteaux mais un goulet migratoire et
+  beaucoup de données GPS ; la Cantabrie, avec 46 000 poteaux, sans GPS et avec une avifaune de montagne. Les cinq régions françaises
+  sont en cours de calcul : il n’y a pas encore de résultats à présenter.</p>
+  <figure>
+    <img src="img/cantabria.en.png" alt="Indice de risque annuel en Cantabrie : mailles colorées du jaune au rouge foncé sur un fond de relief ombré, avec les lignes électriques en gris">
+    <div class="legend"><span><i class="ramp"></i> indice annuel (maximum mensuel), de faible à élevé ; le fond est un relief ombré (vert : plaine, brun : montagne, bleu : mer)</span>
+      <span><i style="background:#333"></i> lignes électriques OSM (épaisses : transport)</span><span><i style="background:#222;border-radius:50%"></i> éoliennes</span>
+      <span><i style="border:2px solid #222;border-radius:50%;background:transparent"></i> 40 premiers du classement</span></div>
+    <figcaption><b>La Cantabrie et ses environs</b> (42,75-43,55° N · 4,90-3,10° O). Les poteaux d’indice le plus élevé se trouvent au sud du
+    cadre, dans les Merindades (Burgos), en février, avec la cigogne blanche, le milan royal hivernant et le vautour fauve. Les tronçons
+    les plus risqués sont des lignes de 12 et 30 kV au fond de la vallée de Liébana, en juillet, sous le passage des aigles bottés, des bondrées apivores et des
+    circaètes Jean-le-Blanc. Les éoliennes culminent en novembre sur les landes de l’est (milan royal, vautour fauve, aigle royal). Les
+    parcs éoliens de Campoo tombent dans des mailles dont l’indice vaut trois fois le 99e centile.</figcaption>
+  </figure>
+  <figure style="max-width:900px">
+    <img src="img/estrecho.en.png" alt="Indice de risque annuel dans le détroit de Gibraltar sur un fond de relief ombré">
+    <figcaption><b>Détroit de Gibraltar</b> (36,00-36,45° N · 5,95-5,30° O). Les 300 000 positions GPS de milan noir
+    renforcent les sierras à l’est de Tarifa, où se concentrent les parcs éoliens. Les poteaux de distribution les plus risqués
+    se trouvent sur cette même bande (El Cuartón-Pelayo) en octobre et novembre, avec le vautour moine, le milan royal et l’aigle de Bonelli ;
+    lignes et éoliennes culminent en septembre et octobre, au plus fort de la migration postnuptiale.</figcaption>
+  </figure>
+  <div class="grid g3">
+    <div class="card ok"><span class="tag">Sortie du modèle</span><h4>Une saisonnalité nette</h4><p>Les poteaux cantabres culminent en
+      février (milans royaux hivernants et retour des cigognes) ; les lignes de Liébana en juillet ; les éoliennes du détroit
+      pendant le passage d’automne. Pour un gestionnaire de réseau, ce qui compte, c’est de corriger le mois qui précède le pic.</p></div>
+    <div class="card ok"><span class="tag">Sortie du modèle</span><h4>Des projets notés</h4><p>Le même raster note n’importe quel polygone
+      en quelques secondes. Appliqué aux avis de l’observatoire des consultations publiques, le parc éolien de Somaloma-Las Quemadas
+      (Campoo) atteint un maximum de 329, avec un pic en septembre.</p></div>
+    <div class="card warn"><span class="tag">Pas encore</span><h4>Aucune validation par la mortalité réelle</h4><p>Le classement est cohérent
+      avec ce que l’on sait de chaque zone, mais personne n’est encore allé vérifier s’il y a des cadavres sous les 40 premiers poteaux. C’est la première
+      action que nous demandons (section 6). En France, la confrontation avec les données de mortalité (LPO, conventions avec Enedis) reste à faire.</p></div>
+  </div>
+  <p class="note">Sur la <a href="regions.fr.html">page des régions</a>, chaque région française renvoie vers sa carte et son rapport en français (et en anglais) ;
+  les régions espagnoles restent en espagnol et en anglais.</p>
+</div></section>
+
+<section class="cap" id="retos"><div class="wrap">
+  <h2><span class="num">5</span>Les difficultés rencontrées</h2>
+  <p class="sub">Chacune a fait évoluer le code. Nous les détaillons parce que ce sont les mêmes que rencontrera quiconque voudra reproduire
+  ou étendre le travail.</p>
+  <ul class="tl">
+    <li><b>GBIF n’est pas fait pour télécharger des centaines de milliers de données</b>L’API de recherche devient extrêmement lente avec des
+      décalages profonds et renvoie des erreurs 503 aux heures de pointe.<span class="fix">Téléchargement par blocs annuels, du plus récent au plus ancien, sur
+      trois fils, avec des relances patientes et un cache par bloc pour pouvoir reprendre. Plafond de 20 000 données par espèce et par région.</span></li>
+    <li><b>Movebank coupe les gros téléchargements</b>Les fichiers publiés pèsent de 10 à 700 Mo et le serveur ferme la connexion
+      en cours de route (IncompleteRead) ; l’API directe exige un compte.<span class="fix">Téléchargement en flux, filtré par région à la volée,
+      trois relances, et les fichiers de plus de 150 Mo sont ignorés. Movebank reste hors du traitement mensuel automatique.</span></li>
+    <li><b>Aucun jeu GPS publié ne couvre la Cantabrie</b>Les données sur le gypaète, le percnoptère ou les vautours de la cordillère Cantabrique existent
+      mais ne sont pas déposées dans des entrepôts ouverts.<span class="fix">Le poids du GPS est devenu proportionnel au nombre de positions
+      pour que les 5 positions trouvées ne changent rien. La vraie solution passe par un accord avec ceux qui détiennent les données.</span></li>
+    <li><b>Une seule donnée pouvait faire exploser l’indice</b>Une cigogne noire en migration photographiée près d’un poste électrique de 41 poteaux
+      plaçait cette maille en tête de toute la Cantabrie.<span class="fix">Lissage plus large là où il y a peu de données,
+      pondération en √n pour les données empilées, plafond de 20 poteaux par maille et poids de confiance par espèce dans l’agrégat.</span></li>
+    <li><b>Le serveur Overpass principal tombait sans cesse</b><span class="fix">Une liste de miroirs avec bascule automatique ; la réponse est
+      mise en cache, si bien qu’en production OSM n’est interrogé qu’une fois par mois.</span></li>
+    <li><b>La carte à 41 000 poteaux pesait 37 Mo et figeait le navigateur</b><span class="fix">Les lignes forment une seule
+      couche GeoJSON et seuls les 4 000 poteaux d’indice le plus élevé sont dessinés ; les autres sont dans le CSV et le GeoJSON. 7,8 Mo.</span></li>
+    <li><b>OSM sait peu de chose de chaque poteau</b>Seuls 11 % des poteaux de Cantabrie (5 % dans le détroit) portent un attribut de
+      matériau, d’isolateur ou de dérivation. La dangerosité réelle de l’armement, qui détermine l’électrocution, est connue des
+      gestionnaires de réseau et n’est pas publique. En France, Enedis publie la position de ses poteaux, mais ni leur armement ni leurs isolateurs.<span class="fix">Facteur de danger par défaut de 1,0 et liste claire des attributs
+      qui changeraient le classement si quelqu’un les fournissait.</span></li>
+    <li><b>Les données portent un biais d’observateur</b>Routes, points de vue et sites prisés concentrent les données même là où ils ne concentrent pas les oiseaux ; et
+      aucune donnée n’indique à quelle hauteur volait l’oiseau.<span class="fix">Correction par l’effort d’échantillonnage (données de tous les oiseaux) et GPS là où
+      il existe. C’est la principale limite, et elle motive la section suivante.</span></li>
+    <li><b>Il n’y a pas de données ouvertes de mortalité en Espagne</b>Nous avons cherché des inventaires de lignes et des registres d’électrocution auprès des
+      communautés autonomes, des associations et des projets LIFE : on publie des chiffres agrégés, pas des points.<span class="fix">Ce que nous avons trouvé est
+      documenté (la couche des lignes dangereuses du gouvernement basque est la seule ouverte) et le calibrage statistique
+      est prêt pour le jour où les données arriveront. En France non plus, aucun jeu ouvert de cas de mortalité : la LPO et les plans nationaux d’actions en tiennent des registres qui ne sont pas publics.</span></li>
+    <li><b>RTE ne publie plus le tracé de ses lignes</b>Le portail ODRÉ liste les lignes aériennes de RTE, mais leur géométrie a été « retirée pour raisons de sécurité publique ».<span class="fix">Les lignes HTB françaises viennent d’OpenStreetMap ; les entreprises locales de distribution (environ 5 % du territoire), qui ne publient pas leur réseau, ne sont comptées que si OSM les cartographie. La basse tension et les lignes souterraines sont écartées.</span></li>
+  </ul>
+</div></section>
+
+<section class="cap" id="mejoras"><div class="wrap">
+  <h2><span class="num">6</span>Ce qui améliorerait la précision, par ordre de priorité</h2>
+  <p class="sub">Le modèle classe déjà ; il reste à le <b>calibrer sur la réalité</b> et à affiner les deux couches les plus faibles : la
+  présence réelle des oiseaux dans les mailles peu visitées et l’état réel de chaque poteau.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Priorité</th><th>Action</th><th>Ce qu’elle corrige</th><th>Qui peut aider</th></tr></thead>
+    <tbody>
+      <tr><td><span class="prio p1">1</span></td><td><b>Vérifier sur le terrain les 40 premiers poteaux de chaque région</b> : photographier
+        l’armement, chercher des cadavres sous le poteau, remplir la fiche du RD 1432/2008 (en Espagne).</td><td>Valide le classement et fournit les premiers
+        points de mortalité pour le calibrage. Un week-end de bénévolat par région.</td><td>Groupes locaux d’associations ; agents de l’environnement.</td></tr>
+      <tr><td><span class="prio p1">1</span></td><td><b>Registres de mortalité existants</b> : inventaires de lignes des communautés
+        autonomes, centres de soins de la faune sauvage (cause d’entrée et coordonnées), données des gestionnaires de réseau et projets LIFE ;
+        en France, les données de la LPO et des conventions avec Enedis.</td>
+        <td>Remplace les poids de la littérature par des poids estimés par régression sur des cas réels.</td>
+        <td>Administrations et centres de soins, avec l’association comme interlocutrice.</td></tr>
+      <tr><td><span class="prio p1">1</span></td><td><b>eBird Status &amp; Trends</b> comme principale couche d’abondance (hebdomadaire, 3 km,
+        modélisée avec l’effort).</td><td>Élimine une grande partie du biais d’observateur et comble les mailles sans données. Le chargeur est déjà
+        écrit ; il manque la clé, dont la demande est en cours.</td><td>Cornell Lab (clé de recherche gratuite).</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Stations acoustiques BirdNET</b> sur les éoliennes, sur les poteaux en tête du
+        classement et dans les zones peu visitées. Un micro et un nano-ordinateur (BirdNET-Pi ou BirdWeather) qui identifient chants et
+        cris en continu et publient les détections ; celles-ci peuvent être versées dans eBird sous forme de listes.</td>
+        <td>Une présence 24 h sur 24, 365 jours par an, sans dépendre du passage d’un observateur : date et heure exactes de fréquentation de chaque site.
+        Fonctionne très bien pour les craves, grues, cigognes, grands-ducs, choucas et passereaux ; mal pour les vautours et les aigles, qui
+        crient à peine. D’où la combinaison avec la ligne suivante.</td>
+        <td>Associations et exploitants éoliens (les parcs disposent déjà d’électricité et de réseau à chaque éolienne).</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Caméras et radars des parcs éoliens</b> : les systèmes de détection déjà installés sur
+        de nombreuses éoliennes (arrêt sélectif) enregistrent l’espèce, la hauteur et la trajectoire.</td>
+        <td>La hauteur de vol, variable qu’aucune donnée ne fournit ; et une vérité terrain pour la collision avec les pales.</td>
+        <td>Exploitants ; l’administration peut exiger la remise des enregistrements dans la décision environnementale.</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>Données d’armement des gestionnaires de réseau</b> : type de traverse, isolateur, ponts,
+        interrupteurs de chaque poteau.</td><td>Une dangerosité réelle au lieu du 1,0 par défaut appliqué à 89 % des poteaux.</td>
+        <td>Distributeurs espagnols (Viesgo/EDP, Endesa, i-DE), tenus d’avoir des inventaires par le RD 1432/2008 ; en France, Enedis.</td></tr>
+      <tr><td><span class="prio p2">2</span></td><td><b>GPS des populations locales</b> : gypaètes, percnoptères et vautours de la
+        cordillère Cantabrique portent déjà des émetteurs posés par des programmes de conservation.</td><td>La couche qui a le plus amélioré le détroit n’existe pas en Cantabrie.
+        Un accord d’usage agrégé (individus-jours par maille) suffit, sans céder les trajets.</td>
+        <td>Fundación para la Conservación del Quebrantahuesos, GREFA, administrations régionales.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Science participative ciblée</b> : la carte d’effort signale elle-même les mailles
+        avec des lignes et sans données ; demander aux observateurs d’y aller.</td><td>Comble les trous à coût nul.</td><td>Adhérents d’associations, groupes eBird locaux.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Validation au Pays basque</b> : une nouvelle région et la comparaison avec la couche
+        officielle des tronçons dangereux du gouvernement basque.</td><td>Une première vérification indépendante sans coût.</td><td>Nous.</td></tr>
+      <tr><td><span class="prio p3">3</span></td><td><b>Relief LiDAR du PNOA (2-5 m)</b> et variables de vent.</td>
+        <td>Meilleure détection des cols et des pentes d’ascendance ; saisonnalité des thermiques.</td><td>IGN espagnol (données ouvertes).</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">À propos des micros : l’identification automatique des chants n’est pas faite par eBird mais par <b>BirdNET</b>, du même
+  laboratoire (Cornell Lab of Ornithology). Une station coûte environ 100 à 150 € en composants, consomme 5 W et détecte à quelque
+  100 à 300 m selon l’espèce et le bruit ; sur une éolienne, le micro doit être éloigné de la nacelle à cause du bruit des pales.
+  Elle fournit la présence et la phénologie à l’heure près, pas la hauteur de vol ni les collisions : elle complète les caméras, elle ne
+  les remplace pas.</p>
+</div></section>
+
+<section class="cap" id="colaborar"><div class="wrap">
+  <h2><span class="num">7</span>Ce que nous demandons et ce que nous offrons</h2>
+  <div class="grid g2">
+    <div class="card"><h4>Nous demandons</h4><p>Un interlocuteur institutionnel pour demander les registres de mortalité et les données d’armement des poteaux
+      aux administrations et aux gestionnaires de réseau ; des groupes locaux pour vérifier sur le terrain les poteaux en tête du classement ; des accords d’usage
+      agrégé des données GPS ; et une zone pilote où installer les premières stations acoustiques. En France, des partenaires pour confronter le
+      classement aux données de mortalité existantes.</p></div>
+    <div class="card"><h4>Nous offrons</h4><p>Un code ouvert et documenté, sans coût de licence ; des cartes et des classements mis à jour chaque
+      mois ; de nouvelles régions en quelques heures (il suffit du rectangle) ; la notation automatique des projets éoliens et de lignes
+      soumis à consultation publique, prête pour les contributions ; et des fichiers GeoTIFF et CSV qui s’ouvrent dans QGIS.</p></div>
+  </div>
+  <div class="cta">
+    <h3>État d’avancement et prochaines étapes</h3>
+    <p>Un prototype fonctionnel (version 0.1, septembre 2026) avec deux régions espagnoles, un traitement mensuel automatique et un site public.
+    En cours : la clé eBird Status &amp; Trends et le calcul de la première vague française (Crau, Camargue, Grands Causses, Pyrénées
+    occidentales, Champagne humide). Ensuite : la vérification sur le terrain des premiers poteaux du classement, une région de validation au
+    Pays basque et, en France, la confrontation avec les données de mortalité.</p>
+    <div class="btns">
+      <a class="btn" href="regions.fr.html">Cartes, classements et téléchargements</a>
+      <a class="btn sec" href="https://github.com/Asensio94/riesgo-tendidos-aves">Dépôt et méthode complète</a>
+      <a class="btn sec" href="https://github.com/Asensio94/observatorio-alegaciones">Observatoire des consultations publiques</a>
+    </div>
+  </div>
+</div></section>
+
+<section class="method" id="metodo">
+  <h2>Comment c’est calculé</h2>
+  <p>Tout se passe sur une grille de mailles de 0,005° (environ 450 × 550 m). Pour chaque espèce <i>s</i>, chaque mois <i>m</i>
+  et chaque maille, on calcule trois indices :</p>
+  <pre class="formula">électrocution[s,m] = P[s,m] · w_electro[s] · poteaux_équivalents        (poteaux de distribution seulement)
+collision_ligne[s,m] = P[s,m] · w_col_lin[s] · km_de_ligne · (1 + relief)
+collision_éolienne[s,m] = P[s,m] · w_col_aer[s] · nb_éoliennes · (1 + crête)</pre>
+  <ol class="steps">
+    <li><b>Télécharger les infrastructures</b><span>En Espagne, tout vient d’OpenStreetMap. En France, les lignes HTA et les
+      poteaux viennent d’Enedis, les lignes HTB (RTE ne publie pas leur géométrie) et les éoliennes d’OpenStreetMap, et tout est découpé aux départements français (IGN Admin Express).
+      Lignes classées par tension : jusqu’à 66 kV en Espagne (champ du RD 1432/2008) et jusqu’à 50 kV en France (HTA ; le 63 kV relève déjà
+      de la HTB), c’est de la distribution (risque d’électrocution) ; au-delà, collision seulement. Les poteaux héritent de la
+      tension de leur ligne. Là où aucun poteau n’est cartographié, on en suppose 6 par km de ligne de distribution.</span></li>
+    <li><b>Dangerosité de chaque poteau</b><span>Un facteur de 0,5 à 2 tiré des attributs OSM : bois 0,5 ; isolateur rigide 1,5 ;
+      isolateur d’ancrage 1,3 ; dérivations, sectionnements et fins de ligne 1,3 ; traverses horizontales 1,1 ; portiques 1,3. Sans attribut,
+      1,0. Plafond de 20 poteaux par maille (au-delà, c’est un poste électrique, pas une ligne).</span></li>
+    <li><b>Présence mensuelle P par espèce</b><span>Densité des données de l’espèce divisée par la densité des données de tous les
+      oiseaux le même mois (ce qui corrige le fait qu’on observe davantage près des routes et des points de vue). Lissage gaussien
+      adaptatif : 1,5 km avec 300 données ou plus dans le mois, plus large avec moins. Les données répétées au même point, au même mois et la même année
+      comptent pour √n. Normalisation de 0 à 1 par espèce.</span></li>
+    <li><b>Suivi GPS là où il existe</b><span>Individus-jours par maille et par mois à partir des trajets Movebank,
+      mêlés à P avec un poids qui croît avec le nombre de positions (jusqu’à 50 % à partir de 2 000 positions). Cinq points d’un
+      oiseau de passage ne bougent pas la carte ; 300 000, si.</span></li>
+    <li><b>Relief</b><span>Pente (jusqu’à doubler le risque de collision avec les lignes au-delà de 25°) et indice de position
+      topographique à 1,5 km (crêtes et cols, où les planeurs passent bas et où l’on construit les parcs éoliens).</span></li>
+    <li><b>Agrégation et confiance</b><span>Chaque espèce contribue à l’indice total avec un poids statut × confiance : le statut suit le
+      Catalogue espagnol des espèces menacées en Espagne et la Liste rouge UICN France (2016, oiseaux nicheurs) en France ; la confiance vaut
+      min(1, données/500) ou croît avec les positions GPS : une espèce avec 120 données dans la région (la grue cendrée en Cantabrie) garde
+      sa couche mais ne domine pas le classement.</span></li>
+    <li><b>Mise à l’échelle et classement</b><span>Chaque indice est remis à l’échelle pour que le 99e centile de la région vaille 100, sans écrêter
+      les maxima. Chaque poteau prend l’indice d’électrocution de sa maille multiplié par sa dangerosité ; chaque tronçon, la
+      moyenne le long de son tracé ; chaque éolienne, celui de sa maille. On conserve le mois du pic et les trois espèces qui
+      contribuent le plus, avec leur part. Chaque élément explique son indice facteur par facteur : combien d’oiseaux
+      dans sa maille ce mois-là par rapport au reste de la région, combien de lignes ou de supports dans la maille, le
+      relief et, pour les supports, quelles étiquettes fixent leur dangerosité.</span></li>
+    <li><b>Publier et recommencer</b><span>Carte interactive avec couches par mois, mécanisme et espèce ; rapport ; CSV et GeoJSON du
+      classement ; GeoTIFF à 12 bandes pour QGIS. Un traitement automatique recalcule tout le 2 de chaque mois avec les nouvelles données.</span></li>
+  </ol>
+<h3>Paramètres</h3>
+<table class="params"><tbody><tr><th>Maille de la grille</th><td class="num">0,005°</td></tr><tr><th>Tension maximale de distribution</th><td class="num">66 kV (Espagne) · 50 kV (France)</td></tr><tr><th>Poteaux supposés là où aucun n’est cartographié</th><td class="num">6 par km</td></tr><tr><th>Plafond de poteaux par maille</th><td class="num">20</td></tr><tr><th>Lissage des données (σ)</th><td class="num">1 500 m avec ≥300 données dans le mois</td></tr><tr><th>Données GBIF</th><td class="num">depuis 2010, jusqu’à 20 000 par espèce</td></tr><tr><th>Données minimales pour inclure une espèce</th><td class="num">30</td></tr><tr><th>Confiance pleine</th><td class="num">500 données ou 2 000 positions GPS</td></tr><tr><th>Poids maximal du GPS (Movebank)</th><td class="num">50 %</td></tr><tr><th>Poids d’eBird Status &amp; Trends</th><td class="num">70 %</td></tr><tr><th>Pente qui double la collision avec les lignes</th><td class="num">25°</td></tr><tr><th>Rayon de la position topographique</th><td class="num">1 500 m</td></tr><tr><th>Échelle</th><td class="num">99e centile = 100</td></tr></tbody></table>
+<h3>Validation</h3>
+<p>À faire. Le classement n’a pas encore été confronté à la mortalité réelle : il n’existe aucun jeu ouvert
+ d’oiseaux électrocutés ou percutés, ni en Espagne ni en France. La première vérification prévue se fera avec la couche des
+ lignes dangereuses du gouvernement basque (région <code>euskadi</code>) ; en France, la comparaison avec les données de mortalité de la LPO
+ et des conventions avec Enedis reste à mener. Dès que des points de mortalité seront disponibles, les poids par espèce seront
+ ajustés par régression logistique.</p>
+<h3>Limites</h3>
+<ul>
+ <li>L’indice est relatif : 100 correspond au 99e centile des mailles équipées d’infrastructures dans la région, et les valeurs
+  supérieures à 100 forment le 1 % du haut et gardent leur ordre pour le classement. Ce n’est pas une probabilité de mortalité : il sert
+  à prioriser, pas à certifier.</li>
+ <li>La couverture d’OSM est incomplète, surtout pour les poteaux et les tensions. En France, Enedis complète les lignes HTA et leurs poteaux, mais pas leur armement.</li>
+ <li>Hors champ en France : la géométrie de RTE au-delà de ce que contient OSM, la basse tension (BT), les entreprises locales de distribution (environ 5 % du territoire) sauf via OSM, et les lignes souterraines.</li>
+ <li>Les données d’observation portent un biais d’observateur (routes, points de vue, sites prisés) même après la correction par l’effort, et
+  n’indiquent pas la hauteur de vol ; seuls certains jeux GPS la donnent.</li>
+</ul>
+</section>
+
+<footer class="site-footer">
+  <p class="principle">Des données publiques, des règles visibles et chaque chiffre relié à sa source. Des pistes, pas des verdicts.</p>
+  <p>Données : © contributeurs d’OpenStreetMap (ODbL) · Enedis (Licence Ouverte 2.0 et ODbL) · GBIF et eBird (selon la licence de chaque jeu) · Movebank Data Repository (CC0) ·
+  AWS Terrain Tiles · Natura 2000 (Agence européenne pour l’environnement) · IGN Admin Express. Les poids par espèce viennent de Bevanger (1998), Janss (2000), Lehman et al. (2007), Marques et al. (2014),
+  du RD 1432/2008 et de la Liste rouge UICN France (2016). L’indice est un outil de priorisation, pas une mesure de la mortalité. Code sous licence MIT.</p>
+  <nav aria-label="Projets frères"><ul class="siblings">
+    <li><a href="https://asensio94.github.io/observatorio-alegaciones/">Observatorio de alegaciones</a></li>
+    <li><a href="https://asensio94.github.io/vigia-incendios/">Vigía de incendios</a></li>
+    <li><a href="https://asensio94.github.io/centinela-natura/">Centinela Natura</a></li>
+    <li><a href="https://asensio94.github.io/vigilancia-humedales/">Vigilancia de humedales</a></li>
+    <li><a href="https://asensio94.github.io/sub-nocte/">Sub Nocte</a></li>
+    <li aria-current="page"><a href="https://asensio94.github.io/riesgo-tendidos-aves/">Riesgo de tendidos para aves</a></li>
+    <li><a href="https://asensio94.github.io/grafo-promotores/">Grafo de promotores</a></li>
+    <li><a href="https://asensio94.github.io/cartera-cotizadas/">Cartera de las cotizadas</a></li>
+    <li><a href="https://asensio94.github.io/cuaderno-campo/">Cuaderno de campo</a></li>
+    <li><a href="https://asensio94.github.io/caudal-ecologico/">Caudal ecológico</a></li>
+    <li><a href="https://asensio94.github.io/estado-iba/">Estado de las IBA</a></li>
+  </ul></nav>
+</footer>
+
+</body>
+</html>
