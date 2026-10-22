@@ -223,6 +223,7 @@ def _regions_page(out, lang):
 </header>
 <main>
 {body or f'<p>{escape(i18n.t(lang, "regions_empty"))}</p>'}
+<p class="meta">{escape(i18n.t(lang, 'ranking_where'))}</p>
 <p class="meta">{escape(i18n.t(lang, 'generated_on', date=date.today().isoformat()))}</p>
 </main>
 {method_section(lang, tuple(shown))}
